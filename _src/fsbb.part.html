@@ -1,0 +1,394 @@
+<!--#TITLE-->
+四開關升降壓 4-Switch Buck-Boost
+<!--#NO-->
+03
+<!--#H1-->
+四開關升降壓轉換器
+<!--#H1_EN-->
+4-Switch Buck-Boost · How it works
+<!--#CHIP-->
+DC <span>→</span> DC · BUCK / BOOST
+<!--#LEDE-->
+<p class="lede">四顆 MOSFET（QH1、QL1、QH2、QL2）與一顆電感組成 H 橋。VIN 高於 VOUT 時輸出側常通、當 <b>Buck</b> 用；VIN 低於 VOUT 時輸入側常通、當 <b>Boost</b> 用；兩者接近時進入四顆開關都在切換的<b>過渡區</b>。拖動 VIN 看模式怎麼切換，以及同一個電感限流值在不同模式下能撐多少輸出電流。
+  <span class="en">Four MOSFETs and one inductor form an H-bridge. With VIN above VOUT the output side stays on and it runs as a buck; with VIN below VOUT the input side stays on and it runs as a boost; near VIN ≈ VOUT all four switches toggle. Drag VIN to watch the mode change and how much output current one inductor current limit can support in each mode.</span></p>
+<!--#CIRCUIT-->
+<div class="mode-line">
+  <span>工作模式 Mode：</span><span class="mode-chip" id="modeChip">Buck 降壓</span>
+  <span class="mode-scale" aria-label="VIN 由低到高的模式順序"><span id="msBoost">Boost 升壓</span><span id="msBB">過渡區 Buck-Boost</span><span id="msBuck">Buck 降壓</span></span>
+  <span class="en" style="display:inline">VIN 低 → 高 low → high</span>
+</div>
+<svg id="circuit" viewBox="0 0 720 320" role="img" aria-label="四開關升降壓電路：DC 電源、CIN、QH1、QL1、電感 L、QL2、QH2、COUT、負載">
+  <defs><filter id="blur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.2"/></filter></defs>
+  <g id="hotGroup">
+    <g id="hotIn">
+      <rect class="hot" x="88" y="52" width="196" height="232" rx="12"/>
+      <text class="hot-label" x="94" y="301">輸入側 Hot loop（CIN–QH1–QL1）</text>
+    </g>
+    <g id="hotOut">
+      <rect class="hot" x="404" y="52" width="196" height="232" rx="12"/>
+      <text class="hot-label" x="410" y="301">輸出側 Hot loop（QH2–QL2–COUT）</text>
+    </g>
+  </g>
+  <g id="gOn">
+    <path class="glow" filter="url(#blur)" d="M50,144 V70 H650 V270 H50 V196"/>
+    <path class="flow" d="M50,144 V70 H650 V270 H50 V196"/>
+  </g>
+  <g id="gOff" style="opacity:0">
+    <path class="glow" filter="url(#blur)" d="M260,270 V70 H650 V270 H260"/>
+    <path class="flow" d="M260,270 V70 H650 V270 H260"/>
+  </g>
+  <path class="wire" d="M50,144 V70 H160"/>
+  <path class="wire" d="M230,70 H290"/>
+  <path class="wire" d="M260,70 V140 M260,210 V270"/>
+  <path class="wire" d="M400,70 H460"/>
+  <path class="wire" d="M430,70 V140 M430,210 V270"/>
+  <path class="wire" d="M530,70 H650 V128"/>
+  <path class="wire" d="M650,212 V270 H50 V196"/>
+  <circle cx="50" cy="170" r="26" class="term"/>
+  <text x="50" y="165" text-anchor="middle" class="lbl">+</text>
+  <text x="50" y="189" text-anchor="middle" class="lbl">−</text>
+  <text x="50" y="44" text-anchor="middle" class="lbl">DC</text>
+  <text id="tVin" x="50" y="60" text-anchor="middle" class="read">12.0 V</text>
+  <path class="wire" d="M115,70 V160 M115,172 V270"/>
+  <path class="plate" d="M97,160 H133 M97,172 H133"/>
+  <text x="138" y="200" class="lbl">C<tspan font-size="10" dy="3">IN</tspan></text>
+  <!-- switches -->
+  <line id="bH1" x1="160" y1="70" x2="227" y2="70" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+  <line id="bL1" x1="260" y1="140" x2="260" y2="207" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+  <line id="bL2" x1="430" y1="140" x2="430" y2="207" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+  <line id="bH2" x1="460" y1="70" x2="527" y2="70" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="160" cy="70" r="4.5" class="term"/><circle cx="230" cy="70" r="4.5" class="term"/>
+  <circle cx="260" cy="140" r="4.5" class="term"/><circle cx="260" cy="210" r="4.5" class="term"/>
+  <circle cx="430" cy="140" r="4.5" class="term"/><circle cx="430" cy="210" r="4.5" class="term"/>
+  <circle cx="460" cy="70" r="4.5" class="term"/><circle cx="530" cy="70" r="4.5" class="term"/>
+  <text x="195" y="44" text-anchor="middle" class="lbl">QH1</text>
+  <text id="sH1" x="195" y="100" text-anchor="middle" class="lbl-sm">ON</text>
+  <text x="274" y="168" class="lbl">QL1</text>
+  <text id="sL1" x="274" y="186" class="lbl-sm">OFF</text>
+  <text x="416" y="168" text-anchor="end" class="lbl">QL2</text>
+  <text id="sL2" x="416" y="186" text-anchor="end" class="lbl-sm">OFF</text>
+  <text x="495" y="44" text-anchor="middle" class="lbl">QH2</text>
+  <text id="sH2" x="495" y="100" text-anchor="middle" class="lbl-sm">ON</text>
+  <text id="tSw1" x="260" y="22" text-anchor="middle" class="read">SW1 = 0.0 V</text>
+  <text id="tSw2" x="430" y="22" text-anchor="middle" class="read">SW2 = 0.0 V</text>
+  <!-- L -->
+  <path class="wire" stroke-width="2.6" d="M290,70 a13.75,13.75 0 0 1 27.5,0 a13.75,13.75 0 0 1 27.5,0 a13.75,13.75 0 0 1 27.5,0 a13.75,13.75 0 0 1 27.5,0"/>
+  <text x="345" y="40" text-anchor="middle" class="lbl">L</text>
+  <text id="polL" x="290" y="50" text-anchor="middle" class="pol">+</text>
+  <text id="polR" x="400" y="50" text-anchor="middle" class="pol">−</text>
+  <text id="tLnote" x="345" y="100" text-anchor="middle" class="lbl-sm">iL ↗ 充電 charging</text>
+  <text id="tIl" x="345" y="120" text-anchor="middle" class="read">iL = 0.00 A</text>
+  <!-- COUT / LOAD -->
+  <path class="wire" d="M575,70 V160 M575,172 V270"/>
+  <path class="plate" d="M557,160 H593 M557,172 H593"/>
+  <text x="583" y="200" class="lbl">C<tspan font-size="10" dy="3">OUT</tspan></text>
+  <path class="wire" d="M650,128 l12,6 l-24,12 l24,12 l-24,12 l24,12 l-24,12 l24,12 l-12,6"/>
+  <text x="668" y="166" class="lbl">LOAD</text>
+  <text id="tVout" x="668" y="184" class="read">12.0 V</text>
+  <text x="650" y="44" text-anchor="middle" class="lbl-sm">V<tspan font-size="9" dy="2">OUT</tspan></text>
+  <path class="wire" d="M50,270 V283 M36,283 H64 M41,289 H59 M46,295 H54"/>
+  <circle class="node" cx="115" cy="70" r="3.6"/><circle class="node" cx="115" cy="270" r="3.6"/>
+  <circle class="node" cx="260" cy="70" r="4.2"/><circle class="node" cx="260" cy="270" r="3.6"/>
+  <circle class="node" cx="430" cy="70" r="4.2"/><circle class="node" cx="430" cy="270" r="3.6"/>
+  <circle class="node" cx="575" cy="70" r="3.6"/><circle class="node" cx="575" cy="270" r="3.6"/>
+</svg>
+<!--#WAVE_ARIA-->
+SW1、SW2 節點電壓、電感電流、輸入側與輸出側開關電流波形
+<!--#WAVE_LEGEND-->
+<span><i style="border-color:var(--ink)"></i>電感平均電流 average inductor current（依模式 = IOUT／IIN／IIN+IOUT）</span>
+<span><i style="border-color:var(--warn)"></i>I<sub>LIM</sub> 電感電流限值 inductor current limit</span>
+<span><i style="border-color:var(--accent)"></i>I<sub>IN</sub> 平均輸入電流</span>
+<span><i style="border-color:var(--ink)"></i>I<sub>OUT</sub> 平均輸出電流</span>
+<!--#PHASES-->
+<article class="phase on active" id="cardOn"></article>
+<article class="phase off" id="cardOff"></article>
+<article class="phase" id="cardMode" style="--c:var(--accent)"></article>
+<!--#TAKEAWAY-->
+<p class="lede" style="margin-top:14px">四開關升降壓的電感在 Buck 模式等於串在輸出側（平均電流 = I<sub>OUT</sub>），在 Boost 模式等於串在輸入側（平均電流 = I<sub>IN</sub>），在過渡區則是 I<sub>IN</sub> + I<sub>OUT</sub>。所以晶片的電感限流值 I<sub>LIM</sub> 能換到多少輸出電流，會隨 VIN 改變：VIN 越低、升壓比越大，可用的輸出電流越少。
+  <span class="en">The inductor carries IOUT in buck mode, IIN in boost mode and IIN + IOUT in the transition region. The output current one current limit can support therefore depends on VIN: the lower VIN, the less output current is available.</span></p>
+<div class="sweep-wrap">
+  <h3>整個 VIN 範圍掃描 <span class="en" style="display:inline">Sweep across VIN (other parameters as set above)</span></h3>
+  <div class="scroll-x"><svg id="sweep" viewBox="0 0 620 250" role="img" aria-label="電感峰值電流與可支撐最大輸出電流對 VIN 的變化"></svg></div>
+  <div class="legend">
+    <span><i style="border-color:var(--on);border-top-style:solid"></i>電感峰值電流 IL(peak)，在目前 IOUT 下</span>
+    <span><i style="border-color:var(--ok);border-top-style:solid"></i>限流點可支撐的最大輸出 IOUT(max)</span>
+    <span><i style="border-color:var(--warn)"></i>I<sub>LIM</sub></span>
+    <span><i style="border-color:var(--ink)"></i>目前設定的 I<sub>OUT</sub></span>
+  </div>
+</div>
+<!--#NOTE_KEY-->
+<span><span class="src pdf">TI SLVA535</span> 等標籤：出自頁尾列出的參考文件 from the listed references</span>
+<!--#NOTES-->
+<div class="ngroup" style="--c:var(--warn)">
+  <h3>PCB Layout <span class="en">佈局</span></h3>
+  <ul>
+    <li><b>兩個 Hot loop，隨模式輪流變「熱」</b><span class="src pdf">TI 佈局文章</span><span class="src add">補充</span><br>主要的高 di/dt 回路有兩個：輸入側 C<sub>IN</sub>–QH1–QL1（含檢流電阻 R<sub>S</sub>），輸出側 C<sub>OUT</sub>–QH2–QL2（含 R<sub>S</sub>）。Buck 模式時輸入側在硬切換，Boost 模式時換成輸出側，過渡區兩邊都是。兩側都要各放高頻 MLCC 緊貼 MOSFET。本頁電路中目前模式較「熱」的回路會以實線強調。
+      <span class="en">The dominant loops are CIN–QH1–QL1 and COUT–QH2–QL2 (each through RS). The input loop is hard-switched in buck mode, the output loop in boost mode, both in the transition region.</span></li>
+    <li><b>高 dv/dt 節點面積要小</b><span class="src pdf">TI 佈局文章</span><br>SW1、SW2 兩個開關節點、自舉節點 BOOT1／BOOT2，以及閘極驅動線 HDRV1、LDRV1、HDRV2、LDRV2 和它們的回流路徑，都是電壓快速跳動的地方，銅箔面積盡量小。
+      <span class="en">Minimize the area of SW1, SW2, BOOT1/2 and the gate-drive traces with their returns.</span></li>
+    <li><b>敏感走線遠離雜訊區</b><span class="src pdf">TI 佈局文章</span><br>檢流電阻 R<sub>S</sub> 到 IC 的 CS／CSG 走線、VISNS／VOSNS／FB 取樣線，以及 SLOPE 與補償元件，都要遠離高 di/dt 回路與高 dv/dt 節點。檢流線建議以差動對方式從 R<sub>S</sub> 兩端直接拉回（Kelvin 接法）<span class="src add">補充</span>。
+      <span class="en">Keep current-sense, voltage-sense, FB and compensation traces away from noisy areas; route RS sense lines as a Kelvin pair.</span></li>
+    <li><b>高功率設計可考慮單一 Hot loop</b><span class="src pdf">ADI</span><br>ADI 比較了「雙 hot loop」與「單一 hot loop」兩種擺法，建議新的高功率設計採用單一 hot loop，以縮小開關節點與回路面積，降低傳導與輻射 EMI。實際做法依控制器而定，請參考該文。
+      <span class="en">ADI recommends a single-hot-loop placement for new high-power designs to cut conducted and radiated EMI.</span></li>
+  </ul>
+</div>
+<div class="ngroup" style="--c:var(--accent)">
+  <h3>選料 <span class="en">Component selection</span></h3>
+  <ul>
+    <li><b>電感：兩個極端都要算</b><span class="src pdf">TI SLVA535</span><br>Buck 模式用 VIN(max)、Boost 模式用 VIN(min) 各算一次所需電感量，取較大者；電感額定電流要大於兩種模式算出的最大峰值電流（通常 Boost 模式、VIN 最低時最大）。漣波抓 I<sub>OUT</sub> 的 20–40%（K<sub>ind</sub> = 0.2–0.4）。
+      <span class="en">Size L at both VIN(max) in buck and VIN(min) in boost; take the larger value. Rate it above the larger peak current. Kind = 0.2–0.4.</span></li>
+    <li><b>四顆 MOSFET 的耐壓與電流</b><span class="src add">補充</span><br>輸入側 QH1／QL1 只承受 VIN、輸出側 QH2／QL2 只承受 VOUT，比 SEPIC 的 VIN + VOUT 低很多。導通損耗以 Boost 模式、VIN(min) 時的電流最大，R<sub>DS(on)</sub> 以此為準。
+      <span class="en">Input-side FETs see VIN, output-side FETs see VOUT. Conduction loss peaks in boost mode at VIN(min).</span></li>
+    <li><b>電容用 X5R 以上、算降容</b><span class="src pdf">TI SLVA535</span><br>輸入與輸出電容建議用低 ESR 陶瓷電容，介質 X5R 或更好，否則直流偏壓和溫度會讓容值大幅下降。輸出電容取 Buck 與 Boost 兩種模式計算值的較大者，通常 Boost 模式（輸出電流是脈衝）比較嚴苛。
+      <span class="en">Use X5R-or-better ceramics and derate for DC bias. Size COUT for the worse of the two modes, usually boost.</span></li>
+    <li><b>自舉電容與高側驅動</b><span class="src add">補充</span><br>QH1、QH2 是高側 N-MOS，需要自舉驅動。Buck 模式下 QH2 常通、Boost 模式下 QH1 常通，自舉電容得不到正常的充電週期，控制器必須定期刷新或內建電荷泵，選控制器時要確認這點。
+      <span class="en">QH1 and QH2 stay on for long stretches, so the controller must refresh their bootstrap capacitors.</span></li>
+    <li><b>檢流電阻 R<sub>S</sub></b><span class="src add">補充</span><br>R<sub>S</sub> 決定電感限流點，選低寄生電感的封裝，功率額定要算最大電流下的 I²R。
+      <span class="en">RS sets the current limit; choose a low-inductance package and check its I²R rating.</span></li>
+  </ul>
+</div>
+<div class="ngroup" style="--c:var(--on)">
+  <h3>設計提醒 <span class="en">Design reminders</span></h3>
+  <ul>
+    <li><b>用兩個極端點設計</b><span class="src pdf">TI SLVA535</span><br>Buck 模式的最壞點在 VIN(max)，Boost 模式在 VIN(min)。兩個點都要算開關最大電流，取較大者作為後續設計依據。
+      <span class="en">Evaluate buck mode at VIN(max) and boost mode at VIN(min), and design to the larger switch current.</span></li>
+    <li><b>同一個限流點，Boost 模式撐得比較少</b><span class="src pdf">TI SLVA535</span><br>Buck：I<sub>max out</sub> = I<sub>LIM</sub> − ΔI/2；Boost：I<sub>max out</sub> = (I<sub>LIM</sub> − ΔI/2)·(1 − D)。兩者都必須大於需求的 I<sub>OUT</sub>，上方掃描圖可以直接看出最低 VIN 時是否還夠。
+      <span class="en">Buck: Imax out = ILIM − ΔI/2. Boost: Imax out = (ILIM − ΔI/2)·(1 − D). Both must exceed the required IOUT.</span></li>
+    <li><b>避免長時間停在四開關同時切換</b><span class="src pdf">EDN</span><br>傳統的 buck-boost 模式四顆開關每週期都在切換，電感與開關的電流應力為 I<sub>IN</sub> + I<sub>OUT</sub>，切換損耗與導通損耗都增加，效率明顯低於單純 Buck 或 Boost。好的控制器只在很窄的過渡區使用這種方式，或改用其他過渡控制。
+      <span class="en">Classic buck-boost mode switches all four FETs with IIN + IOUT current stress, so efficiency drops. Good controllers keep that region narrow.</span></li>
+    <li><b>補償要同時滿足兩種模式</b><span class="src pdf">TI SLVA535</span><span class="src add">補充</span><br>外部補償時，輸出電容與補償網路要同時滿足 Buck 與 Boost 模式。Boost 模式有右半平面零點（RHPZ），會限制迴路頻寬，通常是穩定度的瓶頸。
+      <span class="en">External compensation must work in both modes; the boost-mode RHPZ usually limits bandwidth.</span></li>
+    <li><b>輕載時電感電流可能變負</b><span class="src add">補充</span><br>同步整流在強制 PWM 下，負載很輕時電感電流會低於 0（能量短暫回流到輸入），可以用「輕載」範例觀察。若重視輕載效率，選擇具 PFM／跳頻模式的晶片。
+      <span class="en">In forced PWM the inductor current goes negative at light load. Choose a PFM-capable part if light-load efficiency matters.</span></li>
+  </ul>
+</div>
+<!--#FOOTER-->
+參考文件：
+<a href="https://www.ti.com/lit/pdf/slva535" target="_blank" rel="noopener">TI SLVA535B〈Basic Calculations of a 4-Switch Buck-Boost Power Stage〉</a>（公式與 TPS63802 範例）；
+<a href="https://www.ti.com/lit/ta/ssztae5/ssztae5.pdf" target="_blank" rel="noopener">TI SSZTAE5〈Four-switch Buck-boost Layout Tip No. 1〉</a>（hot loop、高 dv/dt 節點、敏感走線）；
+<a href="https://www.edn.com/do-not-operate-a-four-switch-buck-boost-converter-in-buck-boost-mode/" target="_blank" rel="noopener">EDN〈Do Not Operate a Four-Switch Buck-Boost Converter in Buck-Boost Mode〉</a>（過渡區電流應力與效率）；
+<a href="https://www.analog.com/en/resources/analog-dialogue/articles/4-switch-buck-boost-controller-layout-for-low-emissions-single-hot-loop-vs-dual-hot-loop.html" target="_blank" rel="noopener">ADI〈4-Switch Buck-Boost Controller Layout for Low Emissions〉</a>（單一與雙 hot loop 佈局）。「補充」項目為一般設計經驗，請以實際晶片規格書為準。
+<br>模型假設：同步整流、強制 PWM 的理想 CCM 模型；Buck 佔空比 D = VOUT/(VIN·η) 不超過 90% 時用 Buck，Boost 佔空比 D = 1 − VIN·η/VOUT 不小於 10% 時用 Boost，其餘為過渡區，以傳統四開關同時切換（D = VOUT/(VIN·η + VOUT)）呈現，這是電流應力最大的情況。實際控制器的過渡區策略各家不同，例如 buck／boost 週期交替或四相位控制。限流以「電感電流限值 I<sub>LIM</sub>」表示，對應 SLVA535 的 switch current limit。
+<br>Idealized synchronous, forced-PWM CCM model. Mode thresholds (buck duty ≤ 90%, boost duty ≥ 10%) are this page's assumption; the transition region is drawn as classic four-switch buck-boost, the worst case for current stress. Real controllers use their own transition schemes.
+<!--#CONFIG-->
+(() => {
+  const DBUCK_MAX = 0.9, DBOOST_MIN = 0.1;
+  const MODE = {
+    buck:  {name:'Buck 降壓', en:'buck mode', c:'var(--accent)'},
+    bb:    {name:'過渡區 Buck-Boost', en:'transition', c:'var(--warn)'},
+    boost: {name:'Boost 升壓', en:'boost mode', c:'var(--teal)'}
+  };
+  function core(P, vin){
+    const vout = P.vout, iout = P.iout, eta = P.eta/100, L = P.L*1e-6, f = P.f*1e3;
+    const iin = iout*vout/(vin*eta);
+    const Dbk = vout/(vin*eta), Dbst = 1 - vin*eta/vout;
+    let mode, D, avg, dI;
+    if (Dbk <= DBUCK_MAX) { mode = 'buck'; D = Dbk; avg = iout; dI = (vin - vout)*D/(L*f); }
+    else if (Dbst >= DBOOST_MIN) { mode = 'boost'; D = Math.min(0.95, Dbst); avg = iin; dI = vin*D/(L*f); }
+    else { mode = 'bb'; D = vout/(vin*eta + vout); avg = iin + iout; dI = vin*D/(L*f); }
+    return {mode, vin, vout, iout, eta, iin, Dbk, Dbst, D, D2:1-D, avg, dI, Imax:avg + dI/2, Imin:avg - dI/2,
+      ilim:P.ilim, ioutMax:Math.max(0, P.ilim - dI/2)*iout/avg};
+  }
+  // closed switches per mode and phase
+  const CLOSED = {
+    buck:  {on:['H1','H2'], off:['L1','H2']},
+    boost: {on:['H1','L2'], off:['H1','H2']},
+    bb:    {on:['H1','L2'], off:['L1','H2']}
+  };
+  const OPEN_T = {H1:'rotate(-28 160 70)', L1:'rotate(28 260 140)', L2:'rotate(-28 430 140)', H2:'rotate(-28 460 70)'};
+  const STATIC = { // switches that never toggle in a mode
+    buck:  {H2:'常通 always ON', L2:'常關 always OFF'},
+    boost: {H1:'常通 always ON', L1:'常關 always OFF'},
+    bb:    {}
+  };
+  const PATH = {
+    through: 'M50,144 V70 H650 V270 H50 V196',      // VIN → QH1 → L → QH2 → load
+    freewheel: 'M260,270 V70 H650 V270 H260',        // QL1 → L → QH2 → load
+    charge: 'M50,144 V70 H430 V270 H50 V196'          // VIN → QH1 → L → QL2 → GND
+  };
+  const CARDS = {
+    buck: {
+      on: ['QH1 導通（t<sub>ON</sub> = D·T）', 'Buck 模式下 QH2 常通、QL2 常關，輸出側只是一條通路。QH1 導通時 SW1 = VIN，電流經 QH1 → L → QH2 流向輸出，同時對電感充電，iL 上升。這段時間輸入電流 = iL。', 'QH2 stays on and QL2 stays off. With QH1 on, SW1 = VIN; current flows VIN → QH1 → L → QH2 to the output and iL ramps up. Input current equals iL.'],
+      off: ['QL1 導通（同步續流）', 'QH1 關斷、QL1 導通，取代 BUCK 頁的蕭特基二極體，所以沒有 V<sub>F</sub> 損耗。SW1 = 0，電感經 QL1 → L → QH2 續流，iL 下降，輸入電流 = 0。', 'QH1 off, QL1 on: a synchronous rectifier replaces the diode. SW1 = 0 and the inductor freewheels through QL1 and QH2; iL ramps down and input current is zero.'],
+      mode: ['Buck 模式：電感平均電流 = I<sub>OUT</sub>', 'VIN 明顯高於 VOUT。只有輸入側 QH1／QL1 在切換，和 BUCK 頁的行為相同，輸入側是硬切換的 hot loop。', 'Only the input half-bridge switches, exactly like the buck page. The input-side loop is the hot loop.']
+    },
+    boost: {
+      on: ['QL2 導通（充電）', 'Boost 模式下 QH1 常通、QL1 常關。QL2 導通時 SW2 = 0，VIN 經 QH1 → L → QL2 對電感充電，iL 上升，輸出暫由 C<sub>OUT</sub> 供電。', 'QH1 stays on and QL1 stays off. With QL2 on, SW2 = 0 and VIN charges L through QH1 and QL2; COUT feeds the load.'],
+      off: ['QH2 導通（放電）', 'QL2 關斷、QH2 導通，取代 BOOST 頁的二極體。SW2 = VOUT，電感電壓與 VIN 疊加，經 QH2 送到輸出，iL 下降。', 'QL2 off, QH2 on in place of the diode. SW2 = VOUT; the inductor voltage stacks on VIN and delivers current through QH2.'],
+      mode: ['Boost 模式：電感平均電流 = I<sub>IN</sub>', 'VIN 明顯低於 VOUT。只有輸出側 QL2／QH2 在切換，和 BOOST 頁的行為相同，輸出側是硬切換的 hot loop。', 'Only the output half-bridge switches, like the boost page. The output-side loop is the hot loop.']
+    },
+    bb: {
+      on: ['QH1 + QL2 導通（充電）', '四顆開關每週期都在切換。QH1 與 QL2 同時導通，電感跨接在 VIN 與地之間充電，iL 上升；這段時間輸出完全由 C<sub>OUT</sub> 供電。', 'All four switches toggle. QH1 and QL2 conduct together and L charges from VIN; COUT alone feeds the load.'],
+      off: ['QL1 + QH2 導通（放電）', 'QL1 與 QH2 同時導通，電感跨接在地與 VOUT 之間，把能量送到輸出，iL 下降；這段時間輸入端沒有電流。', 'QL1 and QH2 conduct; L sits between ground and VOUT and delivers energy. No input current flows in this interval.'],
+      mode: ['過渡區：電感平均電流 = I<sub>IN</sub> + I<sub>OUT</sub>', 'VIN 接近 VOUT。輸入只在充電段流入、輸出只在放電段流出，所以電感要同時扛兩者，是三種模式中電流應力最大、效率最低的。兩側 hot loop 都在硬切換。', 'VIN ≈ VOUT. Input current flows only while charging and output current only while discharging, so the inductor carries IIN + IOUT. This is the worst case for stress and efficiency.']
+    }
+  };
+
+  window.CFG = {
+    defaults: {vin:2.6, vout:3.3, iout:2, L:1, f:2100, eta:85, ilim:4.5},
+    params: [
+      {k:'vin', zh:'輸入電壓', en:'VIN', min:2, max:36, step:0.1, fmt:v=>v.toFixed(1)+' V'},
+      {k:'vout', zh:'輸出電壓', en:'VOUT', min:2, max:30, step:0.1, fmt:v=>v.toFixed(1)+' V'},
+      {k:'iout', zh:'輸出電流', en:'IOUT', min:0.1, max:10, step:0.05, fmt:v=>v.toFixed(2)+' A'},
+      {k:'L', zh:'電感量', en:'L', min:0.5, max:47, step:0.1, fmt:v=>v.toFixed(1)+' µH'},
+      {k:'f', zh:'開關頻率', en:'fSW', min:100, max:2500, step:10, fmt:fmtF},
+      {k:'eta', zh:'效率', en:'η', min:70, max:100, step:1, fmt:v=>v.toFixed(0)+' %'},
+      {k:'ilim', zh:'電感電流限值', en:'ILIM', min:1, max:20, step:0.1, fmt:v=>v.toFixed(1)+' A'}
+    ],
+    presets: [
+      {label:'TI SLVA535 範例 2.6 → 3.3 V / 2 A（TPS63802）', v:{vin:2.6, vout:3.3, iout:2, L:1, f:2100, eta:85, ilim:4.5}},
+      {label:'同上，VIN 5 V（Buck）', v:{vin:5, vout:3.3, iout:2, L:1, f:2100, eta:93, ilim:4.5}},
+      {label:'12 V → 20 V / 3 A（USB PD，Boost）', v:{vin:12, vout:20, iout:3, L:4.7, f:400, eta:95, ilim:10}},
+      {label:'12 V → 12 V / 3 A（過渡區）', v:{vin:12, vout:12, iout:3, L:4.7, f:400, eta:95, ilim:10}},
+      {label:'輕載 Light load（iL 變負）', v:{vin:20, vout:12, iout:0.3, L:4.7, f:400, eta:90, ilim:10}}
+    ],
+    model(P){ return core(P, P.vin); },
+    labels(M){
+      return {buck:{on:'QH1 導通 充電', off:'QL1 導通 續流'}, boost:{on:'QL2 導通 充電', off:'QH2 導通 放電'}, bb:{on:'QH1+QL2 充電', off:'QL1+QH2 放電'}}[M.mode];
+    },
+    paths(M){
+      return M.mode==='buck' ? {on:PATH.through, off:PATH.freewheel}
+        : M.mode==='boost' ? {on:PATH.charge, off:PATH.through}
+        : {on:PATH.charge, off:PATH.freewheel};
+    },
+    blade(M, ph){
+      const closed = CLOSED[M.mode][ph], out = {};
+      ['H1','L1','L2','H2'].forEach(k => out['b'+k] = closed.includes(k) ? '' : OPEN_T[k]);
+      return out;
+    },
+    phaseText(M, ph){
+      const closed = CLOSED[M.mode][ph], st = STATIC[M.mode], t = {};
+      ['H1','L1','L2','H2'].forEach(k => t['s'+k] = st[k] || (closed.includes(k) ? 'ON 導通' : 'OFF 關斷'));
+      t.tLnote = ph==='on' ? 'iL ↗ 充電 charging' : 'iL ↘ 放電 discharging';
+      t.polL = ph==='on' ? '+' : '−'; t.polR = ph==='on' ? '−' : '+';
+      return t;
+    },
+    at(M, tau){
+      const {D, Imin, Imax, mode, vin, vout} = M;
+      const on = tau < D, ph = on ? 'on' : 'off';
+      const iL = on ? Imin + (Imax - Imin)*tau/D : Imax - (Imax - Imin)*(tau - D)/(1 - D);
+      const v1 = mode==='boost' ? vin : (on ? vin : 0);
+      const v2 = mode==='buck' ? vout : (on ? 0 : vout);
+      const i1 = mode==='boost' ? iL : (on ? iL : 0);
+      const i2 = mode==='buck' ? iL : (on ? 0 : iL);
+      const s = {ph, v1, v2, iL, i1, i2, flow: Math.abs(iL)/Math.max(Math.abs(Imax), Math.abs(Imin), 1e-6)};
+      s.read = {tSw1:'SW1 = '+fx(v1,1)+' V', tSw2:'SW2 = '+fx(v2,1)+' V', tIl:'iL = '+fx(iL)+' A'};
+      return s;
+    },
+    rows: (() => {
+      const iRange = M => [Math.min(0, M.Imin)*1.2, Math.max(M.Imax, M.ilim)*1.14];
+      const avgLbl = M => ({buck:'IL(avg) = IOUT', boost:'IL(avg) = IIN', bb:'IL(avg) = IIN+IOUT'})[M.mode];
+      return [
+        {k:'v1', zh:'SW1 電壓（輸入側）', en:'SW1 node voltage', unit:'V', c:'var(--accent)', range:M=>[-1, Math.max(M.vin, 1)*1.14],
+          pts:M => M.mode==='boost' ? [[0,M.vin],[1,M.vin]] : [[0,M.vin],[M.D,M.vin],[M.D,0],[1,0],[1,M.vin]],
+          refs:M => [{v:M.vin, c:'var(--muted)', l:'VIN', side:'end'}]},
+        {k:'v2', zh:'SW2 電壓（輸出側）', en:'SW2 node voltage', unit:'V', c:'var(--teal)', range:M=>[-1, Math.max(M.vout, 1)*1.14],
+          pts:M => M.mode==='buck' ? [[0,M.vout],[1,M.vout]] : [[0,0],[M.D,0],[M.D,M.vout],[1,M.vout],[1,0]],
+          refs:M => [{v:M.vout, c:'var(--muted)', l:'VOUT', side:'end'}]},
+        {k:'iL', zh:'電感 L 電流', en:'Inductor current', unit:'A', c:'var(--ink)', range:iRange,
+          pts:M => [[0,M.Imin],[M.D,M.Imax],[1,M.Imin]],
+          refs:M => [{v:M.avg, c:'var(--ink)', l:avgLbl(M), side:'end'}, {v:M.Imax, c:'var(--on)', l:'ILpk', side:'mid', noline:true}, {v:M.ilim, c:'var(--warn)', l:'ILIM', side:'start'}]},
+        {k:'i1', zh:'輸入側開關 QH1 電流', en:'Input switch current', unit:'A', c:'var(--on)', range:iRange,
+          pts:M => M.mode==='boost' ? [[0,M.Imin],[M.D,M.Imax],[1,M.Imin]] : [[0,0],[0,M.Imin],[M.D,M.Imax],[M.D,0],[1,0]],
+          refs:M => [{v:M.iin, c:'var(--accent)', l:'IIN(avg)', side:'end'}]},
+        {k:'i2', zh:'輸出側開關 QH2 電流', en:'Output switch current', unit:'A', c:'var(--off)', range:iRange,
+          pts:M => M.mode==='buck' ? [[0,M.Imin],[M.D,M.Imax],[1,M.Imin]] : [[0,0],[M.D,0],[M.D,M.Imax],[1,M.Imin],[1,0]],
+          refs:M => [{v:M.iout, c:'var(--ink)', l:'IOUT(avg)', side:'end'}]}
+      ];
+    })(),
+    calc(m, P){
+      const F = fx, b = [], md = MODE[m.mode];
+      b.push(['info', `${md.name} ${md.en}`]);
+      const k = m.dI/m.iout*100;
+      b.push([k<=40 && k>=20 ? 'ok' : 'warn', `K<sub>ind</sub> = ΔI / IOUT = ${k.toFixed(0)}%${k>40?'（偏大 high）':k<20?'（偏小 low）':''}`]);
+      b.push(m.ilim >= m.Imax ? ['ok', `ILIM ≥ ILpk，餘量 margin ${((m.ilim/m.Imax-1)*100).toFixed(0)}%`] : ['warn', '會觸發限流 hits current limit：ILIM &lt; ILpk']);
+      b.push(m.ioutMax >= m.iout ? ['ok', `IOUT(max) ${F(m.ioutMax)} A ≥ IOUT`] : ['warn', `IOUT(max) ${F(m.ioutMax)} A &lt; IOUT，限流點不夠`]);
+      if (m.mode==='bb') b.push(['warn', '四開關同時切換：電流應力 IIN + IOUT，效率最低']);
+      if (m.Imin < 0) b.push(['info', '電感電流有負值（強制 PWM 輕載）']);
+      const rows = [];
+      rows.push(['模式判斷', 'Mode selection', `Buck D = <b>VOUT/(VIN·η)</b> = ${(m.Dbk*100).toFixed(1)}%；Boost D = <b>1 − VIN·η/VOUT</b> = ${(m.Dbst*100).toFixed(1)}%。本頁規則：Buck D ≤ 90% 用 Buck，Boost D ≥ 10% 用 Boost，其餘為過渡區`, md.name]);
+      if (m.mode==='buck') rows.push(['佔空比（QH1）', 'Duty cycle', `D = <b>VOUT / (VIN · η)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, (m.D*100).toFixed(1)+' %']);
+      else if (m.mode==='boost') rows.push(['佔空比（QL2）', 'Duty cycle', `D = <b>1 − VIN · η / VOUT</b> = 1 − ${F(m.vin,1)} × ${F(m.eta,2)} / ${F(m.vout,1)}`, (m.D*100).toFixed(1)+' %']);
+      else rows.push(['佔空比（QH1+QL2）', 'Duty cycle', `D = <b>VOUT / (VIN · η + VOUT)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)} + ${F(m.vout,1)})`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['平均輸入電流', 'Average input current', `IIN = <b>IOUT · VOUT / (VIN · η)</b> = ${F(m.iout)} × ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, F(m.iin)+' A']);
+      rows.push(['電感平均電流', 'Average inductor current', {buck:'IL(avg) = <b>IOUT</b>（電感在輸出側）', boost:'IL(avg) = <b>IIN</b>（電感在輸入側）', bb:'IL(avg) = <b>IIN + IOUT</b>'}[m.mode], F(m.avg)+' A']);
+      rows.push(['電感漣波峰-峰值', 'Ripple ΔI (p-p)', m.mode==='buck'
+        ? `ΔI = <b>(VIN − VOUT) · D / (fSW · L)</b> = (${F(m.vin,1)} − ${F(m.vout,1)}) × ${F(m.D,3)} / (${fmtF(P.f)} × ${F(P.L,1)} µH)`
+        : `ΔI = <b>VIN · D / (fSW · L)</b> = ${F(m.vin,1)} × ${F(m.D,3)} / (${fmtF(P.f)} × ${F(P.L,1)} µH)`, F(m.dI,3)+' A']);
+      rows.push(['電感／開關峰值電流', 'Peak switch current', `ISW(max) = <b>IL(avg) + ΔI / 2</b> = ${F(m.avg)} + ${F(m.dI/2,3)}`, F(m.Imax)+' A']);
+      rows.push(['限流點可支撐的最大輸出', 'Max deliverable IOUT', m.mode==='buck'
+        ? `Imax out = <b>ILIM − ΔI / 2</b> = ${F(m.ilim,1)} − ${F(m.dI/2,3)}`
+        : `Imax out = <b>(ILIM − ΔI / 2) · (1 − D)</b> = (${F(m.ilim,1)} − ${F(m.dI/2,3)}) × ${F(1-m.D,3)}`, F(m.ioutMax)+' A']);
+      rows.push(['開關耐壓', 'Switch voltage stress', `輸入側 QH1／QL1 承受 <b>VIN</b>，輸出側 QH2／QL2 承受 <b>VOUT</b>`, F(m.vin,1)+' / '+F(m.vout,1)+' V']);
+      const tail = [
+        {s:'I<sub>IN</sub>', zh:'輸入電流', en:'Input current', v:m.iin, c:'var(--accent)'},
+        {s:'I<sub>OUT</sub>', zh:'輸出電流', en:'Output current', v:m.iout, c:'var(--ink)'}
+      ].sort((a, c) => c.v - a.v);
+      return {badges:b, rows, items:[
+        {s:'I<sub>LIM</sub>', zh:'電感電流限值', en:'Inductor current limit', v:m.ilim, c:'var(--warn)'},
+        {s:'I<sub>Lpk</sub>', zh:'電感／開關峰值', en:'Inductor & switch peak', v:m.Imax, c:'var(--on)'}
+      ].concat(tail)};
+    },
+    after(m, P, $){
+      const md = MODE[m.mode];
+      $('tVin').textContent = fx(m.vin,1)+' V';
+      $('tVout').textContent = fx(m.vout,1)+' V';
+      const chip = $('modeChip'); chip.textContent = md.name; chip.style.setProperty('--c', md.c);
+      [['msBoost','boost'],['msBB','bb'],['msBuck','buck']].forEach(([id, k]) => $(id).classList.toggle('cur', k===m.mode));
+      $('hotIn').style.opacity = m.mode==='boost' ? .28 : 1;
+      $('hotOut').style.opacity = m.mode==='buck' ? .28 : 1;
+      const c = CARDS[m.mode];
+      const card = ([h, zh, en]) => `<h3>${h}</h3><p>${zh}</p><p class="en">${en}</p>`;
+      $('cardOn').innerHTML = card(c.on); $('cardOff').innerHTML = card(c.off);
+      $('cardMode').innerHTML = card(c.mode); $('cardMode').style.setProperty('--c', md.c);
+      drawSweep(P, m, $('sweep'));
+    }
+  };
+
+  // ---------- VIN sweep chart ----------
+  function drawSweep(P, cur, svg){
+    const NS = 'http://www.w3.org/2000/svg';
+    const W = 620, X0 = 52, X1 = 604, Y0 = 16, Y1 = 214;
+    const lo = Math.max(2, P.vout*0.4), hi = Math.min(36, P.vout*3);
+    const N = 240, pts = [];
+    for (let i = 0; i <= N; i++) { const v = lo + (hi - lo)*i/N; pts.push(core(P, v)); }
+    const ymax = Math.max(...pts.map(p => p.Imax), P.ilim, P.iout, ...pts.map(p => p.ioutMax))*1.1;
+    const X = v => X0 + (v - lo)/(hi - lo)*(X1 - X0), Y = a => Y1 - a/ymax*(Y1 - Y0);
+    let h = '';
+    // mode bands
+    let start = 0;
+    for (let i = 1; i <= N + 1; i++) {
+      if (i === N + 1 || pts[i].mode !== pts[start].mode) {
+        const a = X(pts[start].vin), bnd = X(pts[Math.min(i, N)].vin), md = MODE[pts[start].mode];
+        h += `<rect x="${a}" y="${Y0}" width="${Math.max(0, bnd - a)}" height="${Y1 - Y0}" fill="${md.c}" fill-opacity=".09"/>`;
+        if (bnd - a > 46) h += `<text x="${(a + bnd)/2}" y="${Y0 + 13}" text-anchor="middle" class="ref-lbl" fill="${md.c}">${md.name}</text>`;
+        start = i;
+      }
+    }
+    // grid + axes
+    const step = niceStep(ymax/4);
+    for (let a = 0; a <= ymax; a += step) h += `<line x1="${X0}" x2="${X1}" y1="${Y(a)}" y2="${Y(a)}" class="axis" stroke-opacity=".6"/><text x="${X0 - 6}" y="${Y(a) + 4}" text-anchor="end" class="tick">${fx(a, step < 1 ? 1 : 0)}</text>`;
+    const xs = niceStep((hi - lo)/6);
+    for (let v = Math.ceil(lo/xs)*xs; v <= hi + 1e-9; v += xs) h += `<text x="${X(v)}" y="${Y1 + 16}" text-anchor="middle" class="tick">${fx(v, xs < 1 ? 1 : 0)}</text>`;
+    h += `<text x="${(X0 + X1)/2}" y="${Y1 + 32}" text-anchor="middle" class="tick">VIN (V)</text>`;
+    h += `<text x="${X0 - 40}" y="${Y0 + 4}" class="tick">A</text>`;
+    // reference lines
+    h += `<line x1="${X0}" x2="${X1}" y1="${Y(P.ilim)}" y2="${Y(P.ilim)}" class="ref" stroke="var(--warn)"/><text x="${X1 - 2}" y="${Y(P.ilim) - 4}" text-anchor="end" class="ref-lbl" fill="var(--warn)">ILIM ${fx(P.ilim,1)} A</text>`;
+    h += `<line x1="${X0}" x2="${X1}" y1="${Y(P.iout)}" y2="${Y(P.iout)}" class="ref" stroke="var(--ink)"/><text x="${X1 - 2}" y="${Y(P.iout) + 12}" text-anchor="end" class="ref-lbl" fill="var(--ink)">IOUT ${fx(P.iout)} A</text>`;
+    const line = (key, color) => `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.vin).toFixed(1) + ',' + Y(p[key]).toFixed(1)).join(' ')}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round"/>`;
+    h += line('Imax', 'var(--on)') + line('ioutMax', 'var(--ok)');
+    // current VIN marker
+    if (cur.vin >= lo && cur.vin <= hi) {
+      const x = X(cur.vin);
+      h += `<line x1="${x}" x2="${x}" y1="${Y0}" y2="${Y1}" stroke="var(--ink)" stroke-width="1.3" stroke-opacity=".6"/>`;
+      h += `<circle cx="${x}" cy="${Y(cur.Imax)}" r="4.5" fill="var(--on)" stroke="var(--paper)" stroke-width="2"/>`;
+      h += `<circle cx="${x}" cy="${Y(cur.ioutMax)}" r="4.5" fill="var(--ok)" stroke="var(--paper)" stroke-width="2"/>`;
+      h += `<text x="${Math.min(x + 6, X1 - 70)}" y="${Y1 - 6}" class="ref-lbl" fill="var(--ink)">VIN ${fx(cur.vin,1)} V</text>`;
+    }
+    svg.innerHTML = h;
+  }
+  function niceStep(raw){
+    const p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/p;
+    return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10)*p;
+  }
+})();

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DC-DC 開關電流互動教學</title>
+<link rel="stylesheet" href="assets/series.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* series home: three topology cards, then the comparison table and how-to */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.card{display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:14px;padding:16px 18px 18px;text-decoration:none;color:var(--ink);box-shadow:0 8px 24px -18px rgba(20,48,76,.45);transition:transform .15s,box-shadow .15s;min-width:0}
+.card:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(20,48,76,.6)}
+.card .no{font-family:var(--display);font-weight:800;letter-spacing:.12em;color:var(--c);font-size:15px}
+.card h2{margin:0;font-family:var(--display);font-size:30px;line-height:1.05;letter-spacing:.02em}
+.card h2 small{display:block;font-size:15px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:4px}
+.card .rel{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.03em}
+.card .rel .op{color:var(--muted);margin:0 .2em}
+.card p{margin:0;font-size:14px}
+.card ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--muted)}
+.card .go{margin-top:auto;font-weight:800;color:var(--c)}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.tbl th{font-size:12.5px;color:var(--muted);font-weight:700;background:var(--paper-2)}
+.tbl td.m{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.tbl td:first-child{font-weight:800}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><span class="cur" aria-current="page"><b>HOME</b>系列首頁</span><a href="boost.html"><b>01 BOOST</b>升壓</a><a href="buck.html"><b>02 BUCK</b>降壓</a><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a></nav>
+<header>
+<div>
+<div class="eyebrow">DC-DC Topology Series</div>
+<h1>DC-DC 開關電流互動教學<small>Switch current vs. input / output current</small></h1>
+</div>
+<div class="chip-dc">3 <span>×</span> TOPOLOGIES</div>
+<p class="lede">規格書上的 <b>Switch Current Limit（開關電流限值）</b>常被誤認為輸出電流上限。其實它對應哪一個電流，取決於電感在拓撲中的位置。三個互動頁用電路動畫、同步波形與參數滑桿，說明 BOOST、BUCK 與四開關升降壓的開關電流和輸入、輸出電流之間的關係，並整理 Layout、選料與設計上的注意事項。
+<span class="en">The datasheet's Switch Current Limit is often mistaken for an output current limit. Which current it maps to depends on where the inductor sits. Each page animates the current loops, syncs the waveforms and lets you move the design parameters.</span></p>
+</header>
+<div class="cards">
+<a class="card" href="boost.html" style="--c:var(--teal)">
+<span class="no">01 · STEP-UP</span>
+<h2>BOOST 升壓<small>Boost converter</small></h2>
+<div class="rel">I<sub>SW</sub><span class="op">&gt;</span>I<sub>IN</sub><span class="op">&gt;</span>I<sub>OUT</sub></div>
+<p>電感與 VIN 串聯，<b>電感平均電流 = 輸入電流</b>。開關限流值要先換算成輸入電流，再用功率與效率推回輸出電流。</p>
+<ul><li>原文實例：XL6006 限流 5 A，12 V → 24 V 最多約 1.125 A</li><li>原文建議 I<sub>IN</sub> ≤ I<sub>SW</sub> / 2</li></ul>
+<span class="go">開啟 Open →</span>
+</a>
+<a class="card" href="buck.html" style="--c:var(--accent)">
+<span class="no">02 · STEP-DOWN</span>
+<h2>BUCK 降壓<small>Buck converter</small></h2>
+<div class="rel">I<sub>SW</sub><span class="op">&gt;</span>I<sub>OUT</sub><span class="op">&gt;</span>I<sub>IN</sub></div>
+<p>電感串在輸出回路，<b>電感平均電流 = 輸出電流</b>，開關峰值 = I<sub>OUT</sub> + ΔI/2，所以限流點一定要高於輸出電流。</p>
+<ul><li>ΔI = (VIN − VOUT)·D / (L·f<sub>SW</sub>)</li><li>限流點 ≠ 持續輸出能力，要另看發熱</li></ul>
+<span class="go">開啟 Open →</span>
+</a>
+<a class="card" href="4sw-buck-boost.html" style="--c:var(--on)">
+<span class="no">03 · BUCK / BOOST</span>
+<h2>四開關升降壓<small>4-switch buck-boost</small></h2>
+<div class="rel">I<sub>L</sub> = I<sub>OUT</sub><span class="op">→</span>I<sub>IN</sub>+I<sub>OUT</sub><span class="op">→</span>I<sub>IN</sub></div>
+<p>VIN 高時當 Buck、低時當 Boost、接近時四顆開關都切換。<b>同一個限流值能撐的輸出電流隨 VIN 改變</b>，頁面附整個 VIN 範圍的掃描圖。</p>
+<ul><li>依據 TI SLVA535 公式與 TPS63802 範例</li><li>兩個 hot loop 隨模式輪流變「熱」</li></ul>
+<span class="go">開啟 Open →</span>
+</a>
+</div>
+<section class="panel" aria-labelledby="h-cmp">
+<h2 id="h-cmp">三種拓撲一次比較 <span class="en">Side-by-side comparison</span></h2>
+<div class="scroll-x">
+<table class="tbl">
+<thead><tr><th>拓撲 Topology</th><th>電感平均電流</th><th>開關峰值電流</th><th>電流大小關係</th><th>限流值直接對應</th><th>開關電壓應力</th></tr></thead>
+<tbody>
+<tr><td>BUCK</td><td class="m">IOUT</td><td class="m">IOUT + ΔI/2</td><td class="m">ISW &gt; IOUT &gt; IIN</td><td>輸出電流</td><td class="m">VIN</td></tr>
+<tr><td>BOOST</td><td class="m">IIN</td><td class="m">IIN + ΔI/2</td><td class="m">ISW &gt; IIN &gt; IOUT</td><td>輸入電流</td><td class="m">VOUT + VF</td></tr>
+<tr><td>四開關升降壓</td><td class="m">Buck：IOUT<br>過渡區：IIN + IOUT<br>Boost：IIN</td><td class="m">IL(avg) + ΔI/2</td><td>隨 VIN 改變；VIN 越低可用輸出電流越少</td><td>依模式而定</td><td class="m">輸入側 VIN<br>輸出側 VOUT</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="panel" aria-labelledby="h-how">
+<h2 id="h-how">怎麼使用 <span class="en">How to use each page</span></h2>
+<ol class="steps">
+<li>按「播放」看電流回路；用 0.25× 慢動作或「導通／關斷」按鈕逐段觀察。<span class="en">Play the loops, slow them down or step between intervals.</span></li>
+<li>拖動時間游標，對照四到五條波形與電路狀態。<span class="en">Scrub the time cursor to compare waveforms with the circuit state.</span></li>
+<li>調整 VIN、VOUT、IOUT、L、f<sub>SW</sub>、效率與限流點，或選範例，看即時計算與結論長條圖。<span class="en">Move the sliders or load a preset; the formulas and bars update live.</span></li>
+<li>最後看「實務注意事項」：每條都標出出處（原文、TI、EDN、ADI 或補充）。<span class="en">Read the practical notes; each one is tagged with its source.</span></li>
+</ol>
+</section>
+<footer>
+參考文件：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係〉-1 BOOST、-2 BUCK（V1.0）；
+<a href="https://www.ti.com/lit/pdf/slva535" target="_blank" rel="noopener">TI SLVA535B</a>、
+<a href="https://www.ti.com/lit/ta/ssztae5/ssztae5.pdf" target="_blank" rel="noopener">TI SSZTAE5</a>、
+<a href="https://www.edn.com/do-not-operate-a-four-switch-buck-boost-converter-in-buck-boost-mode/" target="_blank" rel="noopener">EDN</a>、
+<a href="https://www.analog.com/en/resources/analog-dialogue/articles/4-switch-buck-boost-controller-layout-for-low-emissions-single-hot-loop-vs-dual-hot-loop.html" target="_blank" rel="noopener">ADI</a>。
+頁面中的波形與計算為理想化教學模型，實際設計請以晶片規格書為準。
+<br>Teaching models are idealized; always follow the IC datasheet for real designs.
+</footer>
+</div>
+</body>
+</html>
