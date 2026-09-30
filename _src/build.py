@@ -17,6 +17,7 @@ SERIES = [  # (key, number, nav name, zh, artifact file stem, site file)
     ("boost", "01", "BOOST", "升壓", "BOOST", "boost.html"),
     ("buck", "02", "BUCK", "降壓", "BUCK", "buck.html"),
     ("fsbb", "03", "4-SW BUCK-BOOST", "四開關升降壓", "4SW-BUCK-BOOST", "4sw-buck-boost.html"),
+    ("sepic", "04", "SEPIC", "單端初級電感", "SEPIC", "sepic.html"),
 ]
 SITE_RESET = "html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}\n"
 

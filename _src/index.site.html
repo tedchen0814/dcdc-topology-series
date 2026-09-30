@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* series home: three topology cards, then the comparison table and how-to */
+/* series home: four topology cards, then the comparison table and how-to */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
 .card{display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:14px;padding:16px 18px 18px;text-decoration:none;color:var(--ink);box-shadow:0 8px 24px -18px rgba(20,48,76,.45);transition:transform .15s,box-shadow .15s;min-width:0}
 .card:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(20,48,76,.6)}
@@ -30,8 +30,8 @@
       <div class="eyebrow">DC-DC Topology Series</div>
       <h1>DC-DC 開關電流互動教學<small>Switch current vs. input / output current</small></h1>
     </div>
-    <div class="chip-dc">3 <span>×</span> TOPOLOGIES</div>
-    <p class="lede">規格書上的 <b>Switch Current Limit（開關電流限值）</b>常被誤認為輸出電流上限。其實它對應哪一個電流，取決於電感在拓撲中的位置。三個互動頁用電路動畫、同步波形與參數滑桿，說明 BOOST、BUCK 與四開關升降壓的開關電流和輸入、輸出電流之間的關係，並整理 Layout、選料與設計上的注意事項。
+    <div class="chip-dc">4 <span>×</span> TOPOLOGIES</div>
+    <p class="lede">規格書上的 <b>Switch Current Limit（開關電流限值）</b>常被誤認為輸出電流上限。其實它對應哪一個電流，取決於電感在拓撲中的位置。四個互動頁用電路動畫、同步波形與參數滑桿，說明 BOOST、BUCK、四開關升降壓與 SEPIC 的開關電流和輸入、輸出電流之間的關係，並整理 Layout、選料與設計上的注意事項。
       <span class="en">The datasheet's Switch Current Limit is often mistaken for an output current limit. Which current it maps to depends on where the inductor sits. Each page animates the current loops, syncs the waveforms and lets you move the design parameters.</span></p>
   </header>
 
@@ -60,10 +60,18 @@
       <ul><li>依據 TI SLVA535 公式與 TPS63802 範例</li><li>兩個 hot loop 隨模式輪流變「熱」</li></ul>
       <span class="go">開啟 Open →</span>
     </a>
+    <a class="card" href="sepic.html" style="--c:var(--off)">
+      <span class="no">04 · UP / DOWN · 1 SWITCH</span>
+      <h2>SEPIC 升降壓<small>Single-ended primary-inductor converter</small></h2>
+      <div class="rel">I<sub>SW</sub><span class="op">≈</span>1.2·(I<sub>IN</sub>+I<sub>OUT</sub>)</div>
+      <p>一顆開關、兩顆電感加耦合電容 C<sub>DC</sub>。Q 導通時兩顆電感電流<b>一起</b>流過 Q，所以限流值要同時扛輸入和輸出電流。</p>
+      <ul><li>原文：開關與二極體耐壓都要大於 VIN + VOUT</li><li>同一顆 IC 做 SEPIC，輸出功率約為 BOOST 的一半</li></ul>
+      <span class="go">開啟 Open →</span>
+    </a>
   </div>
 
   <section class="panel" aria-labelledby="h-cmp">
-    <h2 id="h-cmp">三種拓撲一次比較 <span class="en">Side-by-side comparison</span></h2>
+    <h2 id="h-cmp">四種拓撲一次比較 <span class="en">Side-by-side comparison</span></h2>
     <div class="scroll-x">
       <table class="tbl">
         <thead><tr><th>拓撲 Topology</th><th>電感平均電流</th><th>開關峰值電流</th><th>電流大小關係</th><th>限流值直接對應</th><th>開關電壓應力</th></tr></thead>
@@ -71,6 +79,7 @@
           <tr><td>BUCK</td><td class="m">IOUT</td><td class="m">IOUT + ΔI/2</td><td class="m">ISW &gt; IOUT &gt; IIN</td><td>輸出電流</td><td class="m">VIN</td></tr>
           <tr><td>BOOST</td><td class="m">IIN</td><td class="m">IIN + ΔI/2</td><td class="m">ISW &gt; IIN &gt; IOUT</td><td>輸入電流</td><td class="m">VOUT + VF</td></tr>
           <tr><td>四開關升降壓</td><td class="m">Buck：IOUT<br>過渡區：IIN + IOUT<br>Boost：IIN</td><td class="m">IL(avg) + ΔI/2</td><td>隨 VIN 改變；VIN 越低可用輸出電流越少</td><td>依模式而定</td><td class="m">輸入側 VIN<br>輸出側 VOUT</td></tr>
+          <tr><td>SEPIC</td><td class="m">L1：IIN<br>L2：IOUT</td><td class="m">IIN + IOUT + ΔI<br>（原文 ≈ 1.2·(IIN+IOUT)）</td><td class="m">ISW &gt; IIN + IOUT</td><td>輸入 + 輸出電流之和</td><td class="m">VIN + VOUT + VF</td></tr>
         </tbody>
       </table>
     </div>
@@ -87,7 +96,7 @@
   </section>
 
   <footer>
-    參考文件：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係〉-1 BOOST、-2 BUCK（V1.0）；
+    參考文件：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係〉-1 BOOST、-2 BUCK、-3 SEPIC（V1.0）；
     <a href="https://www.ti.com/lit/pdf/slva535" target="_blank" rel="noopener">TI SLVA535B</a>、
     <a href="https://www.ti.com/lit/ta/ssztae5/ssztae5.pdf" target="_blank" rel="noopener">TI SSZTAE5</a>、
     <a href="https://www.edn.com/do-not-operate-a-four-switch-buck-boost-converter-in-buck-boost-mode/" target="_blank" rel="noopener">EDN</a>、

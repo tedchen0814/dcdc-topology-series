@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SEPIC 單端初級電感轉換器</title>
+<link rel="stylesheet" href="assets/series.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><a href="./"><b>HOME</b>系列首頁</a><a href="boost.html"><b>01 BOOST</b>升壓</a><a href="buck.html"><b>02 BUCK</b>降壓</a><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><span class="cur" aria-current="page"><b>04 SEPIC</b>單端初級電感</span></nav>
+<header>
+<div>
+<div class="eyebrow">DC-DC Topology Series · 04</div>
+<h1>SEPIC 升降壓轉換器<small>Single-Ended Primary-Inductor Converter · How it works</small></h1>
+</div>
+<div class="chip-dc">DC <span>→</span> DC · UP / DOWN</div>
+<p class="lede">SEPIC 用一顆低側開關（通常直接用升壓 IC）、兩顆電感 L1、L2 和耦合電容 C<sub>DC</sub> 組成，輸出可以高於、低於或等於輸入，而且輸入與輸出被 C<sub>DC</sub> 隔開。Q 導通時 L1、L2 <b>同時</b>經 Q 接地儲能，所以 <b>開關電流 = iL1 + iL2 ≈ 輸入電流 + 輸出電流</b>，比 BOOST 多了一整份 I<sub>OUT</sub>。
+<span class="en">A SEPIC uses one low-side switch (usually a boost IC), two inductors and a coupling capacitor CDC. The output can be above, below or equal to the input, and CDC blocks DC between them. With Q on, both inductors charge through Q, so the switch carries iL1 + iL2 ≈ IIN + IOUT — a full IOUT more than a boost.</span></p>
+</header>
+<div class="grid-2">
+<section class="panel" aria-labelledby="h-circuit">
+<h2 id="h-circuit"><span class="step">1</span>電路與電流路徑 <span class="en">Circuit &amp; current loops</span></h2>
+<div class="controls">
+<button id="btnPlay" class="primary" type="button">暫停 Pause</button>
+<div class="seg" role="group" aria-label="速度 Speed">
+<button type="button" data-speed="0.25" aria-pressed="false">0.25×</button>
+<button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+<button type="button" data-speed="1" aria-pressed="true">1×</button>
+<button type="button" data-speed="2" aria-pressed="false">2×</button>
+</div>
+<button id="btnOn" type="button">Q 導通 ON</button>
+<button id="btnOff" type="button">Q 關斷 OFF</button>
+<span id="phasePill" class="phase-pill on">Q 導通 ON</span>
+</div>
+<div class="scroll-x">
+<svg id="circuit" viewBox="0 0 720 320" role="img" aria-label="SEPIC 電路：DC 電源、CIN、電感 L1、開關管 Q、耦合電容 CDC、電感 L2、二極體 D、COUT、負載">
+<defs><filter id="blur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.2"/></filter></defs>
+<g id="hotGroup">
+<rect class="hot" x="276" y="50" width="292" height="234" rx="12"/>
+<text class="hot-label" x="284" y="301">開關電流回路 Hot loop（Q → C<tspan font-size="9" dy="2">DC</tspan><tspan dy="-2"> → D → COUT）</tspan></text>
+</g>
+<g id="gOn">
+<path class="glow" filter="url(#blur)" d="M50,144 V70 H290 V270 H50 V196"/>
+<path class="flow" d="M50,144 V70 H290 V270 H50 V196"/>
+<path class="glow" filter="url(#blur)" d="M340,70 H290 V270 H410 V70 H352"/>
+<path class="flow" d="M340,70 H290 V270 H410 V70 H352"/>
+</g>
+<g id="gOff" style="opacity:0">
+<path class="glow" filter="url(#blur)" d="M50,144 V70 H652 V270 H50 V196"/>
+<path class="flow" d="M50,144 V70 H652 V270 H50 V196"/>
+<path class="glow" filter="url(#blur)" d="M410,270 V70 H652 V270 H410"/>
+<path class="flow" d="M410,270 V70 H652 V270 H410"/>
+</g>
+<path class="wire" d="M50,144 V70 H140"/>
+<path class="wire" d="M250,70 H340"/>
+<path class="wire" d="M352,70 H450"/>
+<path class="wire" d="M478,70 H652 V128"/>
+<path class="wire" d="M652,212 V270 H50 V196"/>
+<circle cx="50" cy="170" r="26" class="term"/>
+<text x="50" y="165" text-anchor="middle" class="lbl">+</text>
+<text x="50" y="189" text-anchor="middle" class="lbl">−</text>
+<text x="50" y="44" text-anchor="middle" class="lbl">DC</text>
+<text id="tVin" x="50" y="60" text-anchor="middle" class="read">12.0 V</text>
+<!-- CIN -->
+<path class="wire" d="M110,70 V160 M110,172 V270"/>
+<path class="plate" d="M92,160 H128 M92,172 H128"/>
+<text x="135" y="171" class="lbl">C<tspan font-size="10" dy="3">IN</tspan></text>
+<!-- L1 -->
+<path class="wire" stroke-width="2.6" d="M140,70 a13.75,13.75 0 0 1 27.5,0 a13.75,13.75 0 0 1 27.5,0 a13.75,13.75 0 0 1 27.5,0 a13.75,13.75 0 0 1 27.5,0"/>
+<text x="195" y="40" text-anchor="middle" class="lbl">L1</text>
+<text id="polL" x="140" y="50" text-anchor="middle" class="pol">+</text>
+<text id="polR" x="250" y="50" text-anchor="middle" class="pol">−</text>
+<text id="tL1note" x="195" y="100" text-anchor="middle" class="lbl-sm">iL1 ↗ 儲能 charging</text>
+<text id="tIl1" x="195" y="120" text-anchor="middle" class="read">iL1 = 0.00 A</text>
+<!-- Q (low side) -->
+<path class="wire" d="M290,70 V140 M290,210 V270"/>
+<line id="blade" x1="290" y1="140" x2="290" y2="207" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+<circle cx="290" cy="140" r="4.5" class="term"/>
+<circle cx="290" cy="210" r="4.5" class="term"/>
+<text id="tQ" x="304" y="160" class="lbl">Q · 導通 ON</text>
+<text id="tVq" x="304" y="180" class="read">VQ = 0.0 V</text>
+<text id="tIq" x="304" y="200" class="read">iQ = 0.00 A</text>
+<text x="290" y="56" text-anchor="middle" class="lbl-sm" font-weight="700">SW</text>
+<!-- CDC -->
+<path class="plate" d="M340,55 V85 M352,55 V85"/>
+<text x="346" y="40" text-anchor="middle" class="lbl">C<tspan font-size="10" dy="3">DC</tspan></text>
+<text id="tVc" x="350" y="104" text-anchor="middle" class="read">VC ≈ 12.0 V</text>
+<!-- L2 (to ground) -->
+<path class="wire" d="M410,70 V128 M410,238 V270"/>
+<path class="wire" stroke-width="2.6" d="M410,128 a13.75,13.75 0 0 1 0,27.5 a13.75,13.75 0 0 1 0,27.5 a13.75,13.75 0 0 1 0,27.5 a13.75,13.75 0 0 1 0,27.5"/>
+<text x="436" y="160" class="lbl">L2</text>
+<text id="polT" x="394" y="138" text-anchor="middle" class="pol">−</text>
+<text id="polB" x="394" y="240" text-anchor="middle" class="pol">+</text>
+<text id="tL2note" x="436" y="182" class="lbl-sm">iL2 ↗ 儲能</text>
+<text id="tIl2" x="436" y="202" class="read">iL2 = 0.00 A</text>
+<text x="436" y="222" class="lbl-sm">↑ 為正 positive up</text>
+<!-- D -->
+<polygon class="solid" points="450,56 450,84 477,70"/>
+<path class="plate" d="M478,55 V85"/>
+<text id="tD" x="464" y="38" text-anchor="middle" class="lbl">D · 反偏 reverse</text>
+<text id="tId" x="505" y="100" text-anchor="middle" class="read">iD = 0.00 A</text>
+<!-- COUT / LOAD -->
+<path class="wire" d="M552,70 V160 M552,172 V270"/>
+<path class="plate" d="M534,160 H570 M534,172 H570"/>
+<text x="574" y="171" class="lbl">C<tspan font-size="10" dy="3">OUT</tspan></text>
+<path class="wire" d="M652,128 l12,6 l-24,12 l24,12 l-24,12 l24,12 l-24,12 l24,12 l-12,6"/>
+<text x="672" y="166" class="lbl">LOAD</text>
+<text id="tVout" x="672" y="184" class="read">12.4 V</text>
+<text x="652" y="44" text-anchor="middle" class="lbl-sm">V<tspan font-size="9" dy="2">OUT</tspan></text>
+<path class="wire" d="M50,270 V283 M36,283 H64 M41,289 H59 M46,295 H54"/>
+<circle class="node" cx="110" cy="70" r="3.6"/><circle class="node" cx="110" cy="270" r="3.6"/>
+<circle class="node" cx="290" cy="70" r="4.2"/><circle class="node" cx="290" cy="270" r="3.6"/>
+<circle class="node" cx="410" cy="70" r="4.2"/><circle class="node" cx="410" cy="270" r="3.6"/>
+<circle class="node" cx="552" cy="70" r="3.6"/><circle class="node" cx="552" cy="270" r="3.6"/>
+</svg>
+</div>
+<div class="legend">
+<span><i style="border-color:var(--on)"></i>Q 導通時電流回路 Q-on loop</span>
+<span><i style="border-color:var(--off)"></i>Q 關斷時電流回路 Q-off loop</span>
+<label><input type="checkbox" id="chkHot" checked>顯示開關電流回路 Show hot loop</label>
+</div>
+</section>
+<section class="panel" aria-labelledby="h-wave">
+<h2 id="h-wave"><span class="step">2</span>各點工作波形 <span class="en">Waveforms (3 switching periods)</span></h2>
+<div class="scrub">
+<span>時間 Time</span>
+<input type="range" id="scrub" min="0" max="300" step="0.5" value="0" aria-label="時間游標 Time cursor">
+<span id="scrubVal" class="num">0.00 T</span>
+</div>
+<div class="scroll-x">
+<svg id="wave" viewBox="0 0 620 424" role="img" aria-label="開關管電壓、L1 電流、L2 電流、開關管電流、二極體電流波形">
+<g id="wfStatic"></g>
+<g id="wfCursor"></g>
+</svg>
+</div>
+<div class="legend"><span><i style="border-color:var(--accent)"></i>I<sub>IN</sub> = L1 平均電流 average L1 current</span>
+<span><i style="border-color:var(--ink)"></i>I<sub>OUT</sub> = L2 平均電流 = 二極體平均電流</span>
+<span><i style="border-color:var(--warn)"></i>I<sub>SW</sub> 限流點 switch current limit</span>
+<span><i style="border-color:var(--muted)"></i>原文估算 1.2·(I<sub>IN</sub> + I<sub>OUT</sub>) note estimate</span></div>
+</section>
+</div>
+<section class="panel" aria-labelledby="h-phase">
+<h2 id="h-phase"><span class="step">3</span>兩個狀態在做什麼 <span class="en">What happens in each interval</span></h2>
+<div class="phases">
+<article class="phase on active" id="cardOn">
+<h3>Q 導通（t<sub>ON</sub> = D·T）</h3>
+<p>Q 導通，SW 節點為 0。有兩個回路同時經過 Q：<b>C<sub>IN</sub> → L1 → Q → GND</b>，VIN 對 L1 充電；<b>C<sub>DC</sub> → Q → GND → L2</b>，C<sub>DC</sub>（電壓約 VIN）對 L2 充電。兩顆電感電壓都約為 VIN，電流一起上升，所以 <b>iQ = iL1 + iL2</b>。D 反偏、<b>iD = 0</b>，負載由 C<sub>OUT</sub> 供電。</p>
+<p class="en">Two loops share Q: CIN → L1 → Q → GND charges L1 from VIN, and CDC → Q → GND → L2 charges L2 from CDC (≈ VIN). Both currents ramp up, so iQ = iL1 + iL2. D is reverse-biased and COUT feeds the load.</p>
+</article>
+<article class="phase off" id="cardOff">
+<h3 id="cardOffTitle">Q 關斷（t<sub>OFF</sub> = (1−D)·T）</h3>
+<p>兩顆電感電壓反向。回路一 <b>C<sub>IN</sub> → L1 → C<sub>DC</sub> → D → C<sub>OUT</sub>／負載</b>：輸入經 L1 向負載供電，同時把 C<sub>DC</sub> 充回去；回路二 <b>L2 → D → C<sub>OUT</sub>／負載</b>。兩股電流在 D 匯合，<b>iD = iL1 + iL2</b>、<b>iQ = 0</b>。Q 此時承受 <b>VIN + VOUT + V<sub>F</sub></b>。</p>
+<p class="en">Both inductor voltages reverse. CIN → L1 → CDC → D → load feeds the output and recharges CDC; L2 → D → load adds the second current. They merge in D, so iD = iL1 + iL2 and iQ = 0. Q now blocks VIN + VOUT + VF.</p>
+</article>
+<article class="phase idle" id="cardIdle" hidden>
+<h3>DCM 空檔（iD = 0）</h3>
+<p>負載很輕時，iL1 + iL2 在週期結束前降到 0，D 截止。這時 <b>iL1 與 iL2 不一定各自為 0</b>，而是大小相等、方向相反，沿 L1 → C<sub>DC</sub> → L2 → GND 環流並維持定值；SW 節點回到約 VIN。</p>
+<p class="en">At light load the sum iL1 + iL2 reaches zero and D turns off. The two inductor currents need not be zero individually: they stay equal and opposite, circulating through L1, CDC and L2. SW settles near VIN.</p>
+</article>
+</div>
+</section>
+<div class="grid-2">
+<section class="panel" aria-labelledby="h-param">
+<h2 id="h-param"><span class="step">4</span>設計參數 <span class="en">Design parameters</span></h2>
+<div class="params" id="params"></div>
+<div class="presets" id="presets"><span>範例 Presets：</span></div>
+</section>
+<section class="panel" aria-labelledby="h-calc">
+<h2 id="h-calc"><span class="step">5</span>即時計算 <span class="en">Live calculation</span></h2>
+<div class="badges" id="badges"></div>
+<div class="formulas" id="formulas"></div>
+</section>
+</div>
+<section class="panel" aria-labelledby="h-take">
+<h2 id="h-take"><span class="step">6</span>結論：電流大小關係 <span class="en">Takeaway: how the currents compare</span></h2>
+<div class="relation" id="relation"></div>
+<div class="bars" id="bars"></div>
+<p class="lede" style="margin-top:14px">SEPIC 的 L1 串在輸入側，所以 <b>L1 平均電流 = I<sub>IN</sub></b>；C<sub>DC</sub> 不能通過直流，L2 的平均電流只能從二極體流出，所以 <b>L2 平均電流 = I<sub>OUT</sub></b>。Q 導通時兩顆電感電流一起流過 Q，<b>開關峰值 = I<sub>L1(peak)</sub> + I<sub>L2(peak)</sub></b>。跟 BOOST 比，同一顆 IC 的限流值要同時扛輸入和輸出電流，所以 SEPIC 能輸出的電流明顯較少。
+<span class="en">L1 is in series with the input, so its average is IIN. CDC blocks DC, so L2's average must leave through the diode: IL2 = IOUT. Both flow through Q while it is on, so the switch peak is IL1(peak) + IL2(peak). Compared with a boost, the same switch limit has to cover input and output current together.</span></p>
+<div class="example">
+<b>原文推導（XL6019 SEPIC，忽略效率）</b>
+<div class="chain">(IL1 + IL2)·(1 − D) = IO … (1)　IL1·(1 − D) = IL2·D … (2)　→ IL2 = IO　→ IL1 = IIN = D/(1 − D)·IO = (VO/VIN)·IO　→ IQ1(peak) = 1.2·(IL1 + IL2) = 1.2·(1 + VO/VIN)·IO</div>
+<span class="en">The note's derivation: diode current balance (1) and CDC charge balance (2) give IL2 = IO and IL1 = IIN = (VO/VIN)·IO. With 20% ripple, the switch peak is 1.2·(1 + VO/VIN)·IO, and the IC's switch current rating must exceed it with margin.</span>
+</div>
+</section>
+<section class="panel" aria-labelledby="h-notes">
+<h2 id="h-notes"><span class="step">7</span>實務注意事項 <span class="en">Layout, component selection &amp; design reminders</span></h2>
+<div class="note-key"><span><span class="src pdf">原文</span> 出自芯龍應用筆記 from the XLSEMI note</span><span><span class="src add">補充</span> 一般設計經驗補充 general design practice</span></div>
+<div class="ngroups">
+<div class="ngroup" style="--c:var(--warn)">
+<h3>PCB Layout <span class="en">佈局</span></h3>
+<ul>
+<li><b>Hot loop：Q → C<sub>DC</sub> → D → C<sub>OUT</sub></b><span class="src pdf">原文圖示</span><span class="src add">補充</span><br>原文圖 1 標出的開關電流回路包含 Q、C<sub>DC</sub>、D 與 C<sub>OUT</sub>，比 BOOST 多了一顆 C<sub>DC</sub>。四顆元件要擠在一起，輸出端高頻 MLCC 緊貼 D 陰極與 Q 的地（PGND）。
+<span class="en">The note's hot loop runs through Q, CDC, D and COUT — one part more than a boost. Keep all four tight.</span></li>
+<li><b>輸入電流連續，EMI 較低</b><span class="src pdf">原文</span><span class="src add">補充</span><br>原文指出 SEPIC 有低 EMI 輻射的特點：L1 在輸入側，輸入電流是連續的三角波，C<sub>IN</sub> 壓力小。輸出側 iD 是 I<sub>IN</sub> + I<sub>OUT</sub> 大小的脈衝，C<sub>OUT</sub> 承受大部分漣波電流。
+<span class="en">Input current is continuous (low EMI, as the note says); the output sees pulses of IIN + IOUT.</span></li>
+<li><b>兩個切換節點</b><span class="src add">補充</span><br>SW（0 ↔ VIN + VOUT）和 C<sub>DC</sub> 右側節點（−VIN ↔ VOUT）都是高 dv/dt 節點，銅箔夠承載電流即可，FB 走線與分壓電阻遠離這兩處與兩顆電感。
+<span class="en">Both SW and the CDC–L2 node swing hard; keep their copper small and FB routing away.</span></li>
+<li><b>兩顆分立電感可分開擺</b><span class="src pdf">原文</span><span class="src add">補充</span><br>原文提到可使用兩個獨立的分立功率電感，擺放較有彈性，但兩顆電感的地端與 Q 的地都要短而寬地回到 C<sub>IN</sub>／C<sub>OUT</sub> 的地。
+<span class="en">Two discrete inductors can be placed freely, but return both to a solid power ground.</span></li>
+</ul>
+</div>
+<div class="ngroup" style="--c:var(--accent)">
+<h3>選料 <span class="en">Component selection</span></h3>
+<ul>
+<li><b>開關管耐壓 &gt; VIN + VOUT</b><span class="src pdf">原文</span><br>Q 關斷時承受 VIN + VOUT（再加 V<sub>F</sub> 與振鈴突波）。所以升壓 IC 的 SW 腳耐壓要大於最高輸入與輸出電壓之和，而不是只看 VOUT。
+<span class="en">The switch blocks VIN + VOUT, so the IC's SW rating must exceed the sum, not just VOUT.</span></li>
+<li><b>蕭特基耐壓 &gt; (VIN + VOUT) 且留 30% 餘量</b><span class="src pdf">原文</span><br>D 在 Q 導通時承受 VIN + VOUT 的反向電壓，原文建議再留 30% 餘量。原文電路用 B560C（5 A／60 V）。二極體平均電流 = I<sub>OUT</sub>，峰值 = I<sub>L1(peak)</sub> + I<sub>L2(peak)</sub><span class="src add">補充</span>。
+<span class="en">The diode's reverse voltage is VIN + VOUT; the note asks for 30% headroom and uses a B560C. Its peak equals the switch peak.</span></li>
+<li><b>耦合電感注意同名端</b><span class="src pdf">原文</span><span class="src add">補充</span><br>若 L1、L2 用耦合電感（同一磁芯），要注意同名端方向；用分立電感則不用。耦合比 1:1 時，所需電感量約為分立時的一半。
+<span class="en">With a coupled inductor, watch the dot polarity; discrete parts don't care. A 1:1 coupled part needs about half the inductance.</span></li>
+<li><b>耦合電容 C<sub>DC</sub></b><span class="src pdf">原文</span><span class="src add">補充</span><br>C<sub>DC</sub> 平均電壓約等於 VIN，耐壓要高於 VIN(max)；它要承受 ≈ I<sub>OUT</sub>·√(VOUT/VIN) 的 RMS 電流，選低 ESR、漣波電流額定足夠的電容。原文電路用 100 µF／63 V。
+<span class="en">CDC sits at about VIN and carries ≈ IOUT·√(VOUT/VIN) RMS; pick low ESR and adequate ripple rating. The note uses 100 µF / 63 V.</span></li>
+<li><b>電感電流額定</b><span class="src pdf">原文</span><br>L1 平均 = I<sub>IN</sub>、L2 平均 = I<sub>OUT</sub>，原文以 20% 漣波估峰值 I<sub>L(peak)</sub> = 1.2·I<sub>L</sub>。原文電路 L1、L2 都用 47 µH／4 A。
+<span class="en">L1 averages IIN, L2 averages IOUT; the note takes the peak as 1.2× average and uses 47 µH / 4 A parts.</span></li>
+</ul>
+</div>
+<div class="ngroup" style="--c:var(--on)">
+<h3>設計提醒 <span class="en">Design reminders</span></h3>
+<ul>
+<li><b>選 IC 看開關電流：&gt; 1.2·(1 + VOUT/VIN)·IOUT</b><span class="src pdf">原文</span><br>晶片的額定開關電流一定要大於 I<sub>Q1(peak)</sub>，並留有餘量。VIN 最低時 VOUT/VIN 最大，開關電流也最大，要用 VIN(min) 來算。
+<span class="en">The IC's switch current rating must exceed 1.2·(1 + VO/VIN)·IO with margin; evaluate at VIN(min).</span></li>
+<li><b>同一顆 IC 做 SEPIC，功率約為 BOOST 的一半</b><span class="src pdf">原文</span><br>原文指出 SEPIC 效率比 BOOST 或 BUCK 低約 8 個百分點，使用相同晶片時輸出功率只有 BOOST 的一半左右。可以用上方「輸出電流上限」和 BOOST 頁對照。
+<span class="en">The note says efficiency is about 8 points lower than boost or buck, and the same chip delivers roughly half the boost output power.</span></li>
+<li><b>輸入與輸出隔直流</b><span class="src pdf">原文</span><span class="src add">補充</span><br>C<sub>DC</sub> 隔開輸入與輸出，不像 BOOST 有 VIN → L → D 的直通路徑，所以關機時輸出可以真正放電到 0，輸出短路時也較容易保護。
+<span class="en">CDC blocks DC, so there is no VIN → L → D path as in a boost: the output can discharge to 0 at shutdown and shorts are easier to handle.</span></li>
+<li><b>迴路補償較難</b><span class="src add">補充</span><br>SEPIC 是四階系統，除了類似 BOOST 的右半平面零點，C<sub>DC</sub> 與 L2（及 L1）還會形成諧振，讓相位急劇下降。迴路頻寬通常要壓在諧振頻率以下，C<sub>DC</sub> 可加大或加阻尼。
+<span class="en">A SEPIC is fourth-order: besides an RHP zero, CDC resonates with the inductors. Keep crossover below that resonance.</span></li>
+<li><b>佔空比與 VIN 範圍</b><span class="src add">補充</span><br>D = VOUT/(VIN·η + VOUT)：VIN = VOUT 時約 50%，VIN 越低 D 越大。確認 VIN(min) 時 D 不超過晶片最大佔空比。
+<span class="en">D is about 50% at VIN = VOUT and rises as VIN drops; check it against the IC's maximum duty at VIN(min).</span></li>
+</ul>
+</div>
+</div>
+</section>
+<footer>
+內容依據：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係-3（SEPIC）〉V1.0（XL6019 SEPIC 範例電路）；「補充」項目為一般設計經驗，請以實際晶片規格書為準。波形為理想化模型：L1 = L2 且不耦合，佔空比含效率修正 D = VOUT/(VIN·η + VOUT)（η = 100% 時即原文 D = VO/(VIN + VO)），C<sub>DC</sub> 電壓視為定值 VIN，蕭特基壓降 V<sub>F</sub> 取 0.4 V。原文電路的 VOUT 由分壓電阻算得 1.25 V × (1 + 24k/2.7k) ≈ 12.4 V；原文未提供 VIN、負載電流、開關頻率與限流值，預設的 12 V、1.5 A、180 kHz、5 A 為假設值。
+<br>Based on the XLSEMI application note “Switch current vs. input/output current – 3 (SEPIC)”. Items tagged 補充 are general practice; always follow the IC datasheet. Idealized model: L1 = L2, uncoupled, D = VOUT/(VIN·η + VOUT), constant CDC voltage, VF = 0.4 V. VIN, load, switching frequency and current limit in the example preset are assumed.
+</footer>
+</div>
+<script src="assets/common.js"></script>
+<script>
+window.CFG = {
+defaults: {vin:12, vout:12.4, iout:1.5, L:47, f:180, eta:88, isw:5},
+params: [
+{k:'vin', zh:'輸入電壓', en:'VIN', min:3, max:40, step:0.5, fmt:v=>v.toFixed(1)+' V'},
+{k:'vout', zh:'輸出電壓', en:'VOUT', min:2, max:40, step:0.1, fmt:v=>v.toFixed(1)+' V'},
+{k:'iout', zh:'輸出電流', en:'IOUT', min:0.02, max:3, step:0.01, fmt:v=>v.toFixed(2)+' A'},
+{k:'L', zh:'電感量 L1 = L2', en:'L', min:4.7, max:100, step:0.1, fmt:v=>v.toFixed(1)+' µH'},
+{k:'f', zh:'開關頻率', en:'fSW', min:100, max:1000, step:10, fmt:fmtF},
+{k:'eta', zh:'效率', en:'η', min:70, max:100, step:1, fmt:v=>v.toFixed(0)+' %'},
+{k:'isw', zh:'開關限流點', en:'ISW limit', min:0.5, max:10, step:0.1, fmt:v=>v.toFixed(1)+' A'}
+],
+presets: [
+{label:'原文電路 12 → 12.4 V（XL6019）', v:{vin:12, vout:12.4, iout:1.5, L:47, f:180, eta:88, isw:5}},
+{label:'降壓側 24 → 12 V / 2 A', v:{vin:24, vout:12, iout:2, L:47, f:180, eta:90, isw:5}},
+{label:'升壓側 5 → 12 V / 0.8 A', v:{vin:5, vout:12, iout:0.8, L:22, f:180, eta:85, isw:5}},
+{label:'輕載 DCM Light load', v:{vin:12, vout:12.4, iout:0.05, L:22, f:180, eta:85, isw:5}}
+],
+model(P){
+const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100;
+const iin = iout*vout/(vin*eta), sum = iin + iout, veff = vout/eta;
+const Dccm = Math.min(0.95, vout/(vin*eta + vout));
+const dIccm = vin*Dccm/(L*f);                 // ripple of each inductor, p-p
+const m = {vin, vout, iout, eta, iin, sum, Dccm, dIccm, isw:P.isw, half:(iin - iout)/2};
+let dcm = null;
+if (sum < dIccm) {                            // iL1 + iL2 would dip below zero
+const D = Math.sqrt(sum*L*f/(vin*(1 + vin/veff)));
+const Smax = 2*vin*D/(L*f), D2 = D*vin/veff;
+if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Smin:0, Smax, dI:Smax/2};
+}
+Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Smin:sum - dIccm, Smax:sum + dIccm, dI:dIccm});
+m.lo = Math.min(0, m.Smin/2 - Math.abs(m.half));
+m.iqPdf = 1.2*sum;
+m.ioutMaxPdf = P.isw/(1.2*(1 + vout/(vin*eta)));
+m.ioutMaxTheory = Math.max(0, P.isw - dIccm)/(1 + vout/(vin*eta));
+return m;
+},
+at(M, tau){
+const {D, D2, Smin, Smax, mode, vin, vout, half} = M;
+let ph, s;
+if (tau < D) { ph = 'on'; s = Smin + (Smax - Smin)*tau/D; }
+else if (mode === 'CCM' || tau < D + D2) { ph = 'off'; s = Smax - (Smax - Smin)*(tau - D)/D2; }
+else { ph = 'idle'; s = 0; }
+s = Math.max(0, s);
+const iL1 = s/2 + half, iL2 = s/2 - half;
+const st = {ph, iL1, iL2, iQ: ph==='on'?s:0, iD: ph==='off'?s:0, vq: ph==='on'?0:(ph==='off'?vin+vout+VF:vin), flow: s/Math.max(Smax, 1e-6)};
+st.read = {tVq:'VQ = '+fx(st.vq,1)+' V', tIl1:'iL1 = '+fx(iL1)+' A', tIl2:'iL2 = '+fx(iL2)+' A', tIq:'iQ = '+fx(st.iQ)+' A', tId:'iD = '+fx(st.iD)+' A'};
+return st;
+},
+rows: (() => {
+const iRange = M => [M.lo*1.3 - 0.02*M.Smax, Math.max(M.Smax, M.isw)*1.14];
+const tri = (M, off) => M.mode==='CCM'
+? [[0,M.Smin/2+off],[M.D,M.Smax/2+off],[1,M.Smin/2+off]]
+: [[0,off],[M.D,M.Smax/2+off],[M.D+M.D2,off],[1,off]];
+return [
+{k:'vq', zh:'開關管 Q 電壓', en:'Switch voltage (SW node)', unit:'V', c:'var(--accent)', range:M=>[-1.5, (M.vin+M.vout+VF)*1.12],
+pts:M => { const {D, D2, vin, vout} = M, E = D + D2, h = vin + vout + VF;
+return M.mode==='CCM' ? [[0,0],[D,0],[D,h],[1,h],[1,0]] : [[0,0],[D,0],[D,h],[E,h],[E,vin],[1,vin],[1,0]]; },
+refs:M => { const r = [{v:M.vin+M.vout, c:'var(--muted)', l:'VIN+VOUT', side:'end'}]; if (M.mode==='DCM') r.push({v:M.vin, c:'var(--muted)', l:'VIN', side:'mid'}); return r; }},
+{k:'iL1', zh:'電感 L1 電流（輸入側）', en:'L1 current', unit:'A', c:'var(--accent)', range:iRange,
+pts:M => tri(M, M.half),
+refs:M => [{v:M.iin, c:'var(--accent)', l:'IIN', side:'end'}]},
+{k:'iL2', zh:'電感 L2 電流（↑ 為正）', en:'L2 current', unit:'A', c:'var(--teal)', range:iRange,
+pts:M => tri(M, -M.half),
+refs:M => [{v:M.iout, c:'var(--ink)', l:'IOUT', side:'end'}]},
+{k:'iQ', zh:'開關管 Q 電流 = iL1 + iL2', en:'Switch current', unit:'A', c:'var(--on)', range:iRange,
+pts:M => [[0,0],[0,M.Smin],[M.D,M.Smax],[M.D,0],[1,0]],
+refs:M => [{v:M.sum, c:'var(--accent)', l:'IIN+IOUT', side:'end'}, {v:M.isw, c:'var(--warn)', l:'ISW 限流', side:'mid'}, {v:M.iqPdf, c:'var(--muted)', l:'1.2×(IIN+IOUT)', side:'start'}]},
+{k:'iD', zh:'續流二極體 D 電流', en:'Diode current', unit:'A', c:'var(--off)', range:iRange,
+pts:M => { const {D, D2, Smin, Smax} = M; return M.mode==='CCM' ? [[0,0],[D,0],[D,Smax],[1,Smin],[1,0]] : [[0,0],[D,0],[D,Smax],[D+D2,0],[1,0]]; },
+refs:M => [{v:M.sum, c:'var(--accent)', l:'IIN+IOUT', side:'end'}, {v:M.iout, c:'var(--ink)', l:'IOUT(avg)', side:'start'}]}
+];
+})(),
+blade: {on:'', off:'rotate(28 290 140)', idle:'rotate(28 290 140)'},
+phaseText: {
+on:  {tQ:'Q · 導通 ON', tD:'D · 反偏 reverse', tL1note:'iL1 ↗ 儲能 charging', tL2note:'iL2 ↗ 儲能', polL:'+', polR:'−', polT:'−', polB:'+'},
+off: {tQ:'Q · 關斷 OFF', tD:'D · 導通 conducting', tL1note:'iL1 ↘ 釋能 discharging', tL2note:'iL2 ↘ 釋能', polL:'−', polR:'+', polT:'+', polB:'−'},
+idle:{tQ:'Q · 關斷 OFF', tD:'D · 截止 off', tL1note:'iL1 定值 · 環流', tL2note:'iL2 定值 · 環流', polL:'', polR:'', polT:'', polB:''}
+},
+calc(m, P){
+const F = fx, b = [];
+b.push(['info', m.mode==='CCM' ? 'CCM 連續導通 continuous' : 'DCM 不連續導通 discontinuous']);
+b.push(['info', m.vout > m.vin + 1e-9 ? '升壓 step-up' : m.vout < m.vin - 1e-9 ? '降壓 step-down' : '等壓 VIN = VOUT']);
+const k = m.dIccm/m.sum*100;
+if (m.mode === 'CCM') b.push([k <= 25 ? 'ok' : 'warn', `漣波 ΔI／(IIN+IOUT) = ${k.toFixed(0)}%${k > 25 ? '（高於原文 20% 假設）' : ''}`]);
+b.push(m.isw >= m.Smax ? ['ok', `ISW ≥ IQ(peak)，餘量 margin ${((m.isw/m.Smax-1)*100).toFixed(0)}%`] : ['warn', '會觸發限流 hits current limit：ISW &lt; IQ(peak)']);
+b.push(m.isw >= m.iqPdf ? ['ok', `符合原文 ISW &gt; 1.2·(IIN+IOUT)`] : ['warn', `不符原文 ISW &gt; 1.2·(IIN+IOUT)`]);
+if (m.Dccm > 0.85) b.push(['warn', '佔空比過高 D &gt; 85%']);
+const rows = [];
+rows.push(['L1 平均電流 = 輸入電流', 'IL1 = IIN', `IIN = <b>IOUT · VOUT / (VIN · η)</b> = ${F(m.iout)} × ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, F(m.iin)+' A']);
+rows.push(['L2 平均電流 = 輸出電流', 'IL2 = IOUT', `IL2 = <b>IOUT</b>（C<sub>DC</sub> 充放電平衡 charge balance）`, F(m.iout)+' A']);
+if (m.mode === 'CCM') {
+rows.push(['佔空比', 'Duty cycle', `D = <b>VOUT / (VIN · η + VOUT)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)} + ${F(m.vout,1)})`, (m.D*100).toFixed(1)+' %']);
+rows.push(['每顆電感漣波峰-峰值', 'Ripple of each inductor (p-p)', `ΔI = <b>VIN · D / (L · fSW)</b> = ${F(m.vin,1)} × ${F(m.D,3)} / (${F(P.L,1)} µH × ${fmtF(P.f)})`, F(m.dI,3)+' A']);
+rows.push(['開關峰值電流', 'Peak switch current', `IQ(peak) = <b>IL1(peak) + IL2(peak) = IIN + IOUT + ΔI</b> = ${F(m.iin)} + ${F(m.iout)} + ${F(m.dI,3)}`, F(m.Smax)+' A']);
+} else {
+rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√((IIN+IOUT)·L·fSW / (VIN·(1 + VIN·η/VOUT)))</b>，小於 CCM 的 ${(m.Dccm*100).toFixed(1)}%`, (m.D*100).toFixed(1)+' %']);
+rows.push(['開關峰值電流', 'Peak switch current', `IQ(peak) = <b>2 · VIN · D / (L · fSW)</b>，iL1 + iL2 每週期回到 0`, F(m.Smax)+' A']);
+rows.push(['CCM 邊界', 'CCM boundary', `IIN + IOUT ≥ <b>ΔI</b> 才會連續導通`, F(m.dIccm)+' A']);
+}
+rows.push(['開關峰值（原文估算，漣波取 20%）', 'Peak switch current, note estimate (20% ripple)', `IQ1(peak) ≈ <b>1.2 · (1 + VOUT/(VIN·η)) · IOUT</b>`, F(m.iqPdf)+' A']);
+rows.push(['開關管承受電壓', 'Switch voltage stress', `VQ(OFF) = <b>VIN + VOUT + VF</b>（未含振鈴突波 excl. ringing）`, F(m.vin+m.vout+VF,1)+' V']);
+rows.push(['二極體反向電壓', 'Diode reverse voltage', `VR = <b>VIN + VOUT</b>；原文建議額定 ≥ 1.3 × = ${F((m.vin+m.vout)*1.3,1)} V`, F(m.vin+m.vout,1)+' V']);
+rows.push(['C<sub>DC</sub> 電壓／RMS 電流', 'Coupling capacitor', `VC ≈ <b>VIN</b>；IC(rms) ≈ <b>IOUT·√(VOUT/(VIN·η))</b> = ${F(m.iout*Math.sqrt(m.vout/(m.vin*m.eta)))} A`, F(m.vin,1)+' V']);
+rows.push(['最大輸出電流（原文算法，漣波取 20%）', 'Max IOUT, note method (20% ripple)', `IOUT(max) = <b>ISW / (1.2 · (1 + VOUT/(VIN·η)))</b>`, F(m.ioutMaxPdf,3)+' A']);
+rows.push(['最大輸出電流（理論上限）', 'Max IOUT, theoretical', `IOUT(max) ≈ <b>(ISW − ΔI) / (1 + VOUT/(VIN·η))</b>，不留餘量 no margin`, F(m.ioutMaxTheory,3)+' A']);
+const io = [
+{s:'I<sub>IN</sub>', zh:'輸入電流 = L1 平均', en:'Input current', v:m.iin, c:'var(--accent)'},
+{s:'I<sub>OUT</sub>', zh:'輸出電流 = L2 平均', en:'Output current', v:m.iout, c:'var(--ink)'}
+].sort((a, b2) => b2.v - a.v);
+return {badges:b, rows, items:[
+{s:'I<sub>SW</sub>', zh:'開關限流點', en:'Switch current limit', v:m.isw, c:'var(--warn)'},
+{s:'I<sub>Q(pk)</sub>', zh:'開關峰值 iL1+iL2', en:'Switch peak', v:m.Smax, c:'var(--on)'},
+...io
+]};
+},
+after(m, P, $){
+$('tVin').textContent = fx(m.vin,1)+' V';
+$('tVout').textContent = fx(m.vout,1)+' V';
+$('tVc').textContent = 'VC ≈ '+fx(m.vin,1)+' V';
+$('cardOffTitle').innerHTML = m.mode==='CCM' ? 'Q 關斷（t<sub>OFF</sub> = (1−D)·T）' : 'Q 關斷（放電到 iL1 + iL2 = 0）';
+}
+};
+</script>
+<script src="assets/engine.js"></script>
+</body>
+</html>
