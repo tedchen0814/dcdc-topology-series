@@ -18,6 +18,8 @@ SERIES = [  # (key, number, nav name, zh, artifact file stem, site file)
     ("buck", "02", "BUCK", "降壓", "BUCK", "buck.html"),
     ("fsbb", "03", "4-SW BUCK-BOOST", "四開關升降壓", "4SW-BUCK-BOOST", "4sw-buck-boost.html"),
     ("sepic", "04", "SEPIC", "單端初級電感", "SEPIC", "sepic.html"),
+    ("flyback", "05", "FLYBACK", "返馳式", "FLYBACK", "flyback.html"),
+    ("acf", "06", "ACF", "主動箝位正激", "ACF", "acf.html"),
 ]
 SITE_RESET = "html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}\n"
 

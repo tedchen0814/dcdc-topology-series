@@ -1,0 +1,264 @@
+<!--#TITLE-->
+主動箝位 Forward 轉換器
+<!--#NO-->
+06
+<!--#H1-->
+主動箝位 Forward
+<!--#H1_EN-->
+Active-Clamp Forward Converter · Isolated, energy passes straight through
+<!--#CHIP-->
+DC <span>→</span> DC · ACF
+<!--#LEDE-->
+<p class="lede">Forward 的變壓器是<b>真正的變壓器</b>：Q1 導通時能量直接經次級 D1 送到輸出電感 L<sub>O</sub>，不存在磁芯裡（和 Flyback 相反）。問題是每個週期都要把激磁能量清掉（磁通重置），<b>主動箝位</b>用箝位電容 C<sub>C</sub> 與開關 Q2 在 Q1 關斷時讓激磁電流<b>反向</b>，磁通往負方向走，磁芯利用率高、Q1 電壓應力可預測，是 PoE bt 30–90 W 常見的高效率拓撲。
+  <span class="en">In a forward converter the transformer passes energy straight to the output inductor while Q1 is on. The core must be reset every cycle: the active clamp (CC + Q2) reverses the magnetizing current while Q1 is off, driving the flux negative. High core utilisation and predictable switch stress make it a common choice for 30–90 W bt PDs.</span></p>
+<!--#CIRCUIT-->
+<svg id="circuit" viewBox="0 0 660 320" role="img" aria-label="主動箝位 Forward 電路：DC 電源、CIN、變壓器初級、箝位電容 CC 與箝位開關 Q2、主開關 Q1、次級、D1、D2、輸出電感 LO、COUT、負載">
+  <defs><filter id="blur" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.2"/></filter></defs>
+  <g id="hotGroup">
+    <rect class="hot" x="86" y="56" width="180" height="228" rx="12"/>
+    <rect class="hot" x="288" y="44" width="116" height="240" rx="12"/>
+    <text class="hot-label" x="92" y="301">初級 CIN → Tx → Q1</text>
+    <text class="hot-label" x="292" y="301">次級 Tx → D1 → D2</text>
+  </g>
+  <g id="gOn">
+    <path class="glow" filter="url(#blur)" d="M50,144 V70 H250 V270 H50 V196"/>
+    <path class="flow" d="M50,144 V70 H250 V270 H50 V196"/>
+    <path class="glow" filter="url(#blur)" d="M300,160 V70 H600 V270 H300 V180"/>
+    <path class="flow" d="M300,160 V70 H600 V270 H300 V180"/>
+  </g>
+  <g id="gOff" style="opacity:0">
+    <path class="glow" filter="url(#blur)" d="M250,150 V180 H180 V70 H250 V120"/>
+    <path class="flow" d="M250,150 V180 H180 V70 H250 V120"/>
+    <path class="glow" filter="url(#blur)" d="M390,250 V70 H600 V270 H390"/>
+    <path class="flow" d="M390,250 V70 H600 V270 H390"/>
+  </g>
+  <line x1="275" y1="40" x2="275" y2="306" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="4 5"/>
+  <text x="275" y="318" text-anchor="middle" class="lbl-sm">隔離 isolation</text>
+  <!-- primary -->
+  <path class="wire" d="M50,144 V70 H250"/>
+  <path class="wire" d="M50,196 V270 H250 V250"/>
+  <circle cx="50" cy="170" r="26" class="term"/>
+  <text x="50" y="165" text-anchor="middle" class="lbl">+</text>
+  <text x="50" y="189" text-anchor="middle" class="lbl">−</text>
+  <text x="50" y="30" text-anchor="middle" class="lbl">V<tspan font-size="10" dy="3">IN</tspan></text>
+  <text id="tVin" x="50" y="50" text-anchor="middle" class="read">48.0 V</text>
+  <path class="wire" d="M100,70 V160 M100,172 V270"/>
+  <path class="plate" d="M82,160 H118 M82,172 H118"/>
+  <text x="104" y="190" class="lbl">C<tspan font-size="10" dy="3">IN</tspan></text>
+  <path class="wire" stroke-width="2.6" d="M250,70 a12.5,12.5 0 0 0 0,25 a12.5,12.5 0 0 0 0,25 a12.5,12.5 0 0 0 0,25 a12.5,12.5 0 0 0 0,25"/>
+  <circle cx="240" cy="72" r="3.2" class="node"/>
+  <text id="pP1" x="232" y="92" text-anchor="middle" class="pol">+</text>
+  <text id="pP2" x="232" y="166" text-anchor="middle" class="pol">−</text>
+  <line x1="271" y1="70" x2="271" y2="170" stroke="var(--wire)" stroke-width="2.4"/>
+  <line x1="279" y1="70" x2="279" y2="170" stroke="var(--wire)" stroke-width="2.4"/>
+  <text id="tIm" x="232" y="30" text-anchor="middle" class="read">iLm = 0.00 A</text>
+  <!-- clamp: CC + Q2 across the primary -->
+  <path class="wire" d="M180,70 V96 M180,108 V124 M180,176 V180 H250"/>
+  <path class="plate" d="M164,96 H196 M164,108 H196"/>
+  <text x="160" y="106" text-anchor="end" class="lbl">C<tspan font-size="10" dy="3">C</tspan></text>
+  <line id="bladeQ2" x1="180" y1="126" x2="180" y2="174" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="180" cy="124" r="4" class="term"/>
+  <circle cx="180" cy="176" r="4" class="term"/>
+  <text id="tQ2" x="160" y="150" text-anchor="end" class="lbl-sm" font-weight="700">Q2 關</text>
+  <!-- Q1 -->
+  <path class="wire" d="M250,170 V190"/>
+  <line id="bladeQ1" x1="250" y1="190" x2="250" y2="247" stroke="var(--wire)" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="250" cy="190" r="4.5" class="term"/>
+  <circle cx="250" cy="250" r="4.5" class="term"/>
+  <text id="tQ" x="140" y="208" class="lbl">Q1 · 導通 ON</text>
+  <text id="tVq" x="140" y="228" class="read">VQ1 = 0.0 V</text>
+  <text id="tIq" x="140" y="248" class="read">iQ1 = 0.00 A</text>
+  <!-- secondary -->
+  <path class="wire" stroke-width="2.6" d="M300,70 a12.5,12.5 0 0 1 0,25 a12.5,12.5 0 0 1 0,25 a12.5,12.5 0 0 1 0,25 a12.5,12.5 0 0 1 0,25"/>
+  <circle cx="310" cy="72" r="3.2" class="node"/>
+  <text id="pS1" x="318" y="92" text-anchor="middle" class="pol">+</text>
+  <text id="pS2" x="318" y="166" text-anchor="middle" class="pol">−</text>
+  <text id="tN" x="300" y="200" text-anchor="middle" class="read">2 : 1</text>
+  <path class="wire" d="M300,70 H326 M354,70 H410"/>
+  <polygon class="solid" points="326,56 326,84 353,70"/>
+  <path class="plate" d="M354,55 V85"/>
+  <text x="340" y="44" text-anchor="middle" class="lbl">D1</text>
+  <path class="wire" d="M300,170 V270 H600 V212 M390,270 V184 M390,156 V70"/>
+  <polygon class="solid" points="376,184 404,184 390,157"/>
+  <path class="plate" d="M375,156 H405"/>
+  <text x="412" y="176" class="lbl">D2</text>
+  <text id="tD" x="400" y="222" class="lbl-sm" font-weight="700">D1 導通 · D2 截止</text>
+  <!-- LO -->
+  <path class="wire" stroke-width="2.6" d="M410,70 a10,10 0 0 1 20,0 a10,10 0 0 1 20,0 a10,10 0 0 1 20,0 a10,10 0 0 1 20,0"/>
+  <text x="450" y="44" text-anchor="middle" class="lbl">L<tspan font-size="10" dy="3">O</tspan></text>
+  <text id="tLnote" x="450" y="100" text-anchor="middle" class="lbl-sm">iLo ↗</text>
+  <text id="tIl" x="450" y="118" text-anchor="middle" class="read">iLo = 0.00 A</text>
+  <path class="wire" d="M490,70 H600 V128"/>
+  <path class="wire" d="M530,70 V160 M530,172 V270"/>
+  <path class="plate" d="M512,160 H548 M512,172 H548"/>
+  <text x="536" y="196" class="lbl">C<tspan font-size="10" dy="3">OUT</tspan></text>
+  <path class="wire" d="M600,128 l12,6 l-24,12 l24,12 l-24,12 l24,12 l-24,12 l24,12 l-12,6"/>
+  <text x="620" y="166" class="lbl">LOAD</text>
+  <text id="tVout" x="620" y="184" class="read">12.0 V</text>
+  <path class="wire" d="M50,270 V283 M36,283 H64 M41,289 H59 M46,295 H54"/>
+  <path class="wire" d="M570,270 V283 M558,283 H582 M562,283 l-4,8 M570,283 l-4,8 M578,283 l-4,8"/>
+  <circle class="node" cx="100" cy="70" r="3.6"/><circle class="node" cx="100" cy="270" r="3.6"/>
+  <circle class="node" cx="180" cy="70" r="3.6"/><circle class="node" cx="250" cy="180" r="3.6"/>
+  <circle class="node" cx="390" cy="70" r="3.6"/><circle class="node" cx="390" cy="270" r="3.6"/>
+  <circle class="node" cx="530" cy="70" r="3.6"/><circle class="node" cx="530" cy="270" r="3.6"/>
+</svg>
+<!--#WAVE_ARIA-->
+主開關電壓、輸出電感電流、主開關電流、激磁電流波形
+<!--#WAVE_LEGEND-->
+<span><i style="border-color:var(--ink)"></i>I<sub>OUT</sub> = 輸出電感平均電流 average LO current</span>
+<span><i style="border-color:var(--warn)"></i>初級限流 I<sub>LIM</sub> primary current limit</span>
+<span><i style="border-color:var(--teal)"></i>激磁電流正負對稱 = 磁通雙向重置 flux reset in both directions</span>
+<!--#PHASES-->
+<article class="phase on active" id="cardOn">
+  <h3>Q1 導通（t<sub>ON</sub> = D·T）：能量直接傳到輸出</h3>
+  <p>V<sub>IN</sub> 加在初級，次級同名端也為正，<b>D1 導通</b>，V<sub>IN</sub>/n 直接加到 L<sub>O</sub>，iLo 上升；D2 反偏。初級電流 = <b>iLo／n + 激磁電流</b>，激磁電流從負值往正值上升。Q2 關閉。</p>
+  <p class="en">VIN sits across the primary; the secondary forward-biases D1 and applies VIN/n to LO, so iLo ramps up. The primary carries iLo/n plus the magnetizing current, which rises from negative to positive.</p>
+</article>
+<article class="phase off" id="cardOff">
+  <h3>Q1 關斷、Q2 導通：磁通重置與續流</h3>
+  <p>死區後 Q2 打開，激磁電流經 Q2 流進箝位電容 C<sub>C</sub>，C<sub>C</sub> 的電壓把線圈電壓反向，<b>激磁電流從正值一路降到負值</b>——磁通往負方向走，這就是「主動」箝位的重置。Q1 承受 <b>V<sub>IN</sub>/(1−D)</b>，沒有 Flyback 那種漏感突波。次級 D1 反偏，L<sub>O</sub> 經 <b>D2 續流</b>，iLo 下降。</p>
+  <p class="en">After a dead time Q2 turns on. The clamp capacitor reverses the winding voltage and the magnetizing current falls from positive to negative, resetting the flux both ways. Q1 blocks VIN/(1−D) with no leakage spike. LO freewheels through D2.</p>
+</article>
+<!--#TAKEAWAY-->
+<p class="lede" style="margin-top:14px">Forward 的輸出電感 L<sub>O</sub> 串在輸出，<b>電感平均電流 = I<sub>OUT</sub></b>（像 BUCK）；折算到初級後，開關峰值 ≈ <b>(I<sub>OUT</sub> + ΔI<sub>O</sub>/2)／n + ΔI<sub>m</sub>/2</b>。因為能量不存在磁芯，同一顆磁芯能處理的功率比 Flyback 大，輸出電流也是連續的三角波，輸出電容壓力小——所以高功率 PoE bt 設計常選它。
+  <span class="en">LO sits in series with the output, so its average current is IOUT (like a buck). Referred to the primary, the switch peak is (IOUT + ΔIO/2)/n + ΔIm/2. The core does not store the load energy, so it handles more power than a flyback core.</span></p>
+<div class="example">
+  <b>PoE bt 範例（Class 6）：48 V → 12 V／4 A，N<sub>P</sub>:N<sub>S</sub> = 2:1，L<sub>O</sub> 22 µH，L<sub>m</sub> 300 µH，250 kHz</b>
+  <div class="chain">D = n·(VOUT+VF)／VIN = 2 × 12.4／48 = 51.7% → ΔIO = (24 − 12.4)·D／(LO·f) ≈ 1.09 A → ΔIm = 48·D／(Lm·f) ≈ 0.33 A → Q1 峰值 ≈ (4 + 0.55)／2 + 0.17 ≈ 2.44 A → Q1 承受 VIN／(1−D) ≈ 99 V，箝位電容 VIN·D／(1−D) ≈ 51 V</div>
+  <span class="en">Load it with the “PoE bt” preset; illustrative design values, not from a specific reference design.</span>
+</div>
+<!--#NOTE_KEY-->
+<span><span class="src pdf">PoE</span> 與 PoE PD 應用直接相關 PoE-specific</span>
+<!--#NOTES-->
+<div class="ngroup" style="--c:var(--warn)">
+  <h3>PCB Layout <span class="en">佈局</span></h3>
+  <ul>
+    <li><b>三個回路</b><span class="src add">補充</span><br>初級 C<sub>IN</sub> → 初級線圈 → Q1；箝位 初級線圈 → Q2 → C<sub>C</sub>；次級 次級線圈 → D1 → D2。次級整流回路電流最大，要最短；箝位回路面積也要小，否則重置時會振鈴。
+      <span class="en">Keep the primary, clamp and secondary rectifier loops small.</span></li>
+    <li><b>同步整流的閘極驅動</b><span class="src add">補充</span><br>高電流輸出通常把 D1／D2 換成 MOSFET（自驅或控制器驅動），閘極走線短，並注意與 Q1／Q2 死區的配合，避免交越導通。
+      <span class="en">With synchronous rectifiers, keep gate loops short and coordinate dead times.</span></li>
+    <li><b>隔離帶</b><span class="src pdf">PoE</span><br>和 Flyback 相同：只有變壓器、回授光耦與 Y 電容跨越隔離帶；PoE 前端與次級之間維持 1500 Vrms 等級隔離。
+      <span class="en">Only the transformer, opto and Y-cap cross the barrier.</span></li>
+  </ul>
+</div>
+<div class="ngroup" style="--c:var(--accent)">
+  <h3>選料 <span class="en">Component selection</span></h3>
+  <ul>
+    <li><b>Q1 耐壓 &gt; V<sub>IN</sub>/(1−D)</b><span class="src pdf">PoE</span><br>PoE 輸入 37–57 V，D 隨 V<sub>IN</sub> 反向變化，V<sub>IN</sub>·D 近似固定，所以 V<sub>IN</sub>/(1−D) 在最高 V<sub>IN</sub> 時最大，約 100–120 V，常選 150 V MOSFET。
+      <span class="en">Worst case is at VIN(max); 150 V MOSFETs are typical.</span></li>
+    <li><b>箝位電容 C<sub>C</sub></b><span class="src add">補充</span><br>高側箝位（跨在線圈上）時 C<sub>C</sub> 承受 V<sub>IN</sub>·D/(1−D)；容量要讓 C<sub>C</sub> 與 L<sub>m</sub> 的諧振週期遠大於關斷時間，電壓漣波才小。
+      <span class="en">Size CC so its resonance with Lm is much slower than tOFF.</span></li>
+    <li><b>輸出電感 L<sub>O</sub></b><span class="src add">補充</span><br>平均電流 = I<sub>OUT</sub>，漣波 ΔI<sub>O</sub> = (V<sub>IN</sub>/n − V<sub>OUT</sub>)·D／(L<sub>O</sub>·f)，取 I<sub>OUT</sub> 的 20–40%；飽和電流大於峰值並留餘量。
+      <span class="en">Pick LO for 20–40% ripple; Isat above the peak.</span></li>
+  </ul>
+</div>
+<div class="ngroup" style="--c:var(--on)">
+  <h3>設計提醒 <span class="en">Design reminders</span></h3>
+  <ul>
+    <li><b>D 可以超過 50%</b><span class="src add">補充</span><br>傳統 RCD 或第三繞組重置的 Forward，D 通常限制在 50% 以下（要留時間重置）。主動箝位重置由 C<sub>C</sub> 電壓自動配合，D 可以超過 50%，有利於寬輸入的 PoE。
+      <span class="en">Active clamping allows D above 50%, handy for wide PoE input ranges.</span></li>
+    <li><b>死區與零電壓切換</b><span class="src add">補充</span><br>Q1 關斷到 Q2 導通之間、以及 Q2 關斷到 Q1 導通之間都需要死區；利用反向激磁電流對 Q1 寄生電容放電，可以做到接近零電壓導通（ZVS），進一步降低切換損耗。
+      <span class="en">Dead times let the negative magnetizing current discharge Q1's capacitance for near-ZVS turn-on.</span></li>
+    <li><b>控制晶片</b><span class="src pdf">PoE</span><br>需要能輸出兩路互補閘極驅動（主開關與箝位開關）並可設定死區的控制器；部分 PoE PD 晶片已整合 bt 介面與主動箝位控制器。
+      <span class="en">You need a controller with complementary drive and programmable dead time; some PoE PD ICs integrate one.</span></li>
+  </ul>
+</div>
+<!--#FOOTER-->
+內容依據：主動箝位 Forward 一般工作原理與 PoE PD 常見設計值（AI 整理，未取自單一原文）；「PoE」標籤項目與本站 <a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener">PoE PD 互動教學</a>相關。波形為理想化模型：D = n·(VOUT + VF)／VIN，激磁電流以 ±ΔIm/2 對稱示意，輸出電感假設 CCM，V<sub>F</sub> 取 0.4 V，忽略死區與諧振過渡。
+<br>Idealized model based on general active-clamp forward theory and typical PoE PD values; dead times and resonant transitions are ignored. Always follow the IC datasheet.
+<!--#CONFIG-->
+window.CFG = {
+  defaults: {vin:48, vout:12, iout:4, n:2, L:22, lm:300, f:250, eta:92, isw:3.5},
+  params: [
+    {k:'vin', zh:'輸入電壓（PoE V<sub>port</sub>）', en:'VIN', min:36, max:57, step:0.5, fmt:v=>v.toFixed(1)+' V'},
+    {k:'vout', zh:'輸出電壓', en:'VOUT', min:3.3, max:24, step:0.1, fmt:v=>v.toFixed(1)+' V'},
+    {k:'iout', zh:'輸出電流', en:'IOUT', min:0.3, max:12, step:0.05, fmt:v=>v.toFixed(2)+' A'},
+    {k:'n', zh:'匝比 N<sub>P</sub>:N<sub>S</sub>', en:'n', min:1, max:8, step:0.05, fmt:v=>v.toFixed(2)+' : 1'},
+    {k:'L', zh:'輸出電感', en:'LO', min:2, max:100, step:0.5, fmt:v=>v.toFixed(1)+' µH'},
+    {k:'lm', zh:'激磁電感', en:'Lm', min:50, max:1500, step:10, fmt:v=>v.toFixed(0)+' µH'},
+    {k:'f', zh:'開關頻率', en:'fSW', min:100, max:600, step:5, fmt:fmtF},
+    {k:'eta', zh:'效率', en:'η', min:80, max:97, step:1, fmt:v=>v.toFixed(0)+' %'},
+    {k:'isw', zh:'初級限流點', en:'ILIM', min:0.5, max:8, step:0.05, fmt:v=>v.toFixed(2)+' A'}
+  ],
+  clamp(P){ const dmax = 0.72; if (P.n*(P.vout + VF)/P.vin > dmax) P.n = Math.max(1, Math.floor(dmax*P.vin/(P.vout + VF)*20)/20); },
+  presets: [
+    {label:'PoE bt · 48 → 12 V / 4 A', v:{vin:48, vout:12, iout:4, n:2, L:22, lm:300, f:250, eta:92, isw:3.5}},
+    {label:'PTZ · 48 → 24 V / 2.6 A', v:{vin:48, vout:24, iout:2.6, n:1, L:47, lm:300, f:250, eta:93, isw:3.5}},
+    {label:'5 V / 8 A 大電流', v:{vin:48, vout:5, iout:8, n:4, L:6.8, lm:400, f:300, eta:90, isw:3}},
+    {label:'長線低壓 37 V', v:{vin:37, vout:12, iout:4, n:2, L:22, lm:300, f:250, eta:92, isw:3.5}},
+    {label:'高線 57 V', v:{vin:57, vout:12, iout:4, n:2, L:22, lm:300, f:250, eta:92, isw:3.5}}
+  ],
+  model(P){
+    const Lo = P.L*1e-6, Lm = P.lm*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100, n = P.n;
+    const D = Math.min(0.72, n*(vout + VF)/vin);
+    const dIo = (vin/n - VF - vout)*D/(Lo*f), dIm = vin*D/(Lm*f);
+    const m = {mode:'CCM', vin, vout, iout, eta, n, D, D2:1-D, dIo, dIm, isw:P.isw};
+    m.Iomin = iout - dIo/2; m.Iomax = iout + dIo/2;
+    m.iin = vout*iout/(eta*vin);
+    m.iqpk = m.Iomax/n + dIm/2;
+    m.vq = vin/(1 - D); m.vcc = vin*D/(1 - D);
+    m.ioutMax = Math.max(0, (P.isw - dIm/2)*n - dIo/2);
+    return m;
+  },
+  at(M, tau){
+    const {D, Iomin, Iomax, dIm, n, vin} = M;
+    let ph, iLo, im;
+    if (tau < D) { ph = 'on'; iLo = Iomin + (Iomax - Iomin)*tau/D; im = -dIm/2 + dIm*tau/D; }
+    else { ph = 'off'; iLo = Iomax - (Iomax - Iomin)*(tau - D)/(1 - D); im = dIm/2 - dIm*(tau - D)/(1 - D); }
+    const s = {ph, iLo, im, iQ: ph==='on' ? iLo/n + im : 0, vq: ph==='on' ? 0 : M.vq, flow: iLo/Math.max(Iomax, 1e-6)};
+    s.read = {tVq:'VQ1 = '+fx(s.vq,1)+' V', tIl:'iLo = '+fx(iLo)+' A', tIq:'iQ1 = '+fx(s.iQ)+' A', tIm:'iLm = '+fx(im,3)+' A'};
+    return s;
+  },
+  rows: [
+    {k:'vq', zh:'主開關 Q1 電壓', en:'Q1 drain voltage', unit:'V', c:'var(--accent)', range:M=>[-3, M.vq*1.15],
+      pts:M => [[0,0],[M.D,0],[M.D,M.vq],[1,M.vq],[1,0]],
+      refs:M => [{v:M.vq, c:'var(--muted)', l:'VIN/(1−D)', side:'end'}, {v:M.vin, c:'var(--muted)', l:'VIN', side:'start'}]},
+    {k:'iLo', zh:'輸出電感 LO 電流', en:'Output inductor current', unit:'A', c:'var(--ink)', range:M=>[Math.min(0, M.Iomin), M.Iomax*1.14],
+      pts:M => [[0,M.Iomin],[M.D,M.Iomax],[1,M.Iomin]],
+      refs:M => [{v:M.iout, c:'var(--ink)', l:'IOUT', side:'end'}]},
+    {k:'iQ', zh:'主開關 Q1 電流', en:'Q1 current', unit:'A', c:'var(--on)', range:M=>[0, Math.max(M.iqpk, M.isw)*1.14],
+      pts:M => [[0,0],[0,M.Iomin/M.n - M.dIm/2],[M.D,M.iqpk],[M.D,0],[1,0]],
+      refs:M => [{v:M.isw, c:'var(--warn)', l:'ILIM', side:'mid'}, {v:M.iin, c:'var(--accent)', l:'IIN', side:'end'}]},
+    {k:'im', zh:'激磁電流（經 Q1／Q2）', en:'Magnetizing current', unit:'A', c:'var(--teal)', range:M=>[-M.dIm*0.75, M.dIm*0.75],
+      pts:M => [[0,-M.dIm/2],[M.D,M.dIm/2],[1,-M.dIm/2]],
+      refs:M => [{v:M.dIm/2, c:'var(--teal)', l:'+ΔIm/2', side:'mid', noline:true}, {v:-M.dIm/2, c:'var(--teal)', l:'−ΔIm/2', side:'end', noline:true}]}
+  ],
+  labels(M){ return {on:'Q1 導通 ON', off:'Q1 關・Q2 箝位 OFF'}; },
+  blade(M, ph){ return ph === 'on' ? {bladeQ1:'', bladeQ2:'rotate(28 180 126)'} : {bladeQ1:'rotate(28 250 190)', bladeQ2:''}; },
+  phaseText: {
+    on:  {tQ:'Q1 · 導通 ON', tQ2:'Q2 關', tD:'D1 導通 · D2 截止', tLnote:'iLo ↗ VIN/n − VOUT', pP1:'+', pP2:'−', pS1:'+', pS2:'−'},
+    off: {tQ:'Q1 · 關斷 OFF', tQ2:'Q2 開（箝位）', tD:'D1 截止 · D2 續流', tLnote:'iLo ↘ 續流 freewheel', pP1:'−', pP2:'+', pS1:'−', pS2:'+'}
+  },
+  calc(m, P){
+    const F = fx, b = [];
+    b.push(['info', `D = ${(m.D*100).toFixed(1)}%${m.D > 0.5 ? '（> 50%，主動箝位可接受）' : ''}`]);
+    const r = m.dIo/m.iout*100;
+    b.push([r <= 40 && r >= 20 ? 'ok' : 'warn', `輸出電感漣波比 ${r.toFixed(0)}%`]);
+    b.push(m.isw >= m.iqpk ? ['ok', `ILIM ≥ Q1 峰值，餘量 ${((m.isw/m.iqpk-1)*100).toFixed(0)}%`] : ['warn', '會觸發限流：ILIM &lt; Q1 峰值']);
+    b.push(m.vq <= 120 ? ['ok', `Q1 承受 ${F(m.vq,0)} V，150 V MOSFET 可用`] : ['warn', `Q1 承受 ${F(m.vq,0)} V，耐壓需再提高`]);
+    const rows = [
+      ['佔空比', 'Duty cycle', `D = <b>n · (VOUT + VF) / VIN</b> = ${F(m.n,2)} × ${F(m.vout+VF,1)} / ${F(m.vin,1)}`, (m.D*100).toFixed(1)+' %'],
+      ['平均輸入電流', 'Input current', `IIN = <b>VOUT · IOUT / (η · VIN)</b>`, F(m.iin,3)+' A'],
+      ['輸出電感漣波', 'LO ripple', `ΔIO = <b>(VIN/n − VF − VOUT) · D / (LO · fSW)</b>`, F(m.dIo,3)+' A'],
+      ['輸出電感峰值', 'LO peak', `ILO,pk = <b>IOUT + ΔIO / 2</b>`, F(m.Iomax)+' A'],
+      ['激磁電流峰-峰值', 'Magnetizing ripple', `ΔIm = <b>VIN · D / (Lm · fSW)</b>，在 ±ΔIm/2 之間擺動`, F(m.dIm,3)+' A'],
+      ['Q1 峰值電流', 'Q1 peak', `IQ1,pk = <b>ILO,pk / n + ΔIm / 2</b> = ${F(m.Iomax)} / ${F(m.n,2)} + ${F(m.dIm/2,3)}`, F(m.iqpk)+' A'],
+      ['Q1 關斷電壓', 'Q1 off-state voltage', `VQ1 = <b>VIN / (1 − D)</b>（無漏感突波）`, F(m.vq,1)+' V'],
+      ['箝位電容電壓', 'Clamp capacitor voltage', `VCC = <b>VIN · D / (1 − D)</b>（高側箝位）`, F(m.vcc,1)+' V'],
+      ['D2 反向電壓', 'Freewheel diode reverse', `VD2 = <b>VIN / n</b>`, F(m.vin/m.n,1)+' V'],
+      ['限流下最大輸出電流', 'Max IOUT at ILIM', `IOUT(max) ≈ <b>(ILIM − ΔIm/2) · n − ΔIO/2</b>`, F(m.ioutMax,2)+' A']
+    ];
+    return {badges:b, rows, items:[
+      {s:'I<sub>LIM</sub>', zh:'初級限流點', en:'Primary current limit', v:m.isw, c:'var(--warn)'},
+      {s:'I<sub>Q1,pk</sub>', zh:'Q1 峰值', en:'Q1 peak', v:m.iqpk, c:'var(--on)'},
+      {s:'I<sub>IN</sub>', zh:'輸入電流', en:'Input current', v:m.iin, c:'var(--accent)'},
+      {s:'I<sub>OUT</sub>', zh:'輸出電流', en:'Output current', v:m.iout, c:'var(--ink)'},
+      {s:'I<sub>LO,pk</sub>', zh:'輸出電感峰值', en:'LO peak', v:m.Iomax, c:'var(--off)'}
+    ]};
+  },
+  after(m, P, $){
+    $('tVin').textContent = fx(m.vin,1)+' V';
+    $('tVout').textContent = fx(m.vout,1)+' V';
+    $('tN').textContent = fx(m.n,2)+' : 1';
+  }
+};

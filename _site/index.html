@@ -31,14 +31,14 @@
 </head>
 <body>
 <div class="wrap">
-<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><span class="cur" aria-current="page"><b>HOME</b>系列首頁</span><a href="boost.html"><b>01 BOOST</b>升壓</a><a href="buck.html"><b>02 BUCK</b>降壓</a><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><a href="sepic.html"><b>04 SEPIC</b>單端初級電感</a></nav>
+<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><span class="cur" aria-current="page"><b>HOME</b>系列首頁</span><a href="boost.html"><b>01 BOOST</b>升壓</a><a href="buck.html"><b>02 BUCK</b>降壓</a><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><a href="sepic.html"><b>04 SEPIC</b>單端初級電感</a><a href="flyback.html"><b>05 FLYBACK</b>返馳式</a><a href="acf.html"><b>06 ACF</b>主動箝位正激</a></nav>
 <header>
 <div>
 <div class="eyebrow">DC-DC Topology Series</div>
 <h1>DC-DC 開關電流互動教學<small>Switch current vs. input / output current</small></h1>
 </div>
-<div class="chip-dc">4 <span>×</span> TOPOLOGIES</div>
-<p class="lede">規格書上的 <b>Switch Current Limit（開關電流限值）</b>常被誤認為輸出電流上限。其實它對應哪一個電流，取決於電感在拓撲中的位置。四個互動頁用電路動畫、同步波形與參數滑桿，說明 BOOST、BUCK、四開關升降壓與 SEPIC 的開關電流和輸入、輸出電流之間的關係，並整理 Layout、選料與設計上的注意事項。
+<div class="chip-dc">6 <span>×</span> TOPOLOGIES</div>
+<p class="lede">規格書上的 <b>Switch Current Limit（開關電流限值）</b>常被誤認為輸出電流上限。其實它對應哪一個電流，取決於電感在拓撲中的位置。六個互動頁用電路動畫、同步波形與參數滑桿，說明 BOOST、BUCK、四開關升降壓、SEPIC，以及隔離型的 Flyback 與主動箝位 Forward（PoE PD 常用）的開關電流和輸入、輸出電流之間的關係，並整理 Layout、選料與設計上的注意事項。
 <span class="en">The datasheet's Switch Current Limit is often mistaken for an output current limit. Which current it maps to depends on where the inductor sits. Each page animates the current loops, syncs the waveforms and lets you move the design parameters.</span></p>
 </header>
 <div class="cards">
@@ -74,9 +74,25 @@
 <ul><li>原文：開關與二極體耐壓都要大於 VIN + VOUT</li><li>同一顆 IC 做 SEPIC，輸出功率約為 BOOST 的一半</li></ul>
 <span class="go">開啟 Open →</span>
 </a>
+<a class="card" href="flyback.html" style="--c:var(--accent)">
+<span class="no">05 · ISOLATED · ENERGY STORED</span>
+<h2>Flyback 返馳式<small>Flyback converter</small></h2>
+<div class="rel">I<sub>D,pk</sub><span class="op">=</span>n·I<sub>Q,pk</sub></div>
+<p>變壓器其實是耦合電感：Q 導通時<b>存能</b>、關斷時從次級<b>放能</b>，初級與次級從不同時導通。開關峰值 ≈ I<sub>IN</sub>/D + ΔI/2。PoE PD 30 W 以下最主流。</p>
+<ul><li>Q 承受 V<sub>IN</sub> + n·V<sub>OUT</sub> + 漏感突波</li><li>CCM／DCM 與 RCD 箝位</li></ul>
+<span class="go">開啟 Open →</span>
+</a>
+<a class="card" href="acf.html" style="--c:var(--ok)">
+<span class="no">06 · ISOLATED · ACTIVE CLAMP</span>
+<h2>主動箝位 Forward<small>Active-clamp forward</small></h2>
+<div class="rel">V<sub>Q1</sub><span class="op">=</span>V<sub>IN</sub>/(1−D)</div>
+<p>能量在 Q1 導通時直接送到輸出電感（I<sub>LO</sub> = I<sub>OUT</sub>）；箝位電容與 Q2 讓<b>激磁電流反向</b>重置磁通。PoE bt 30–90 W 常用的高效率拓撲。</p>
+<ul><li>激磁電流 ±ΔIm/2 對稱擺動</li><li>D 可超過 50%，無漏感突波</li></ul>
+<span class="go">開啟 Open →</span>
+</a>
 </div>
 <section class="panel" aria-labelledby="h-cmp">
-<h2 id="h-cmp">四種拓撲一次比較 <span class="en">Side-by-side comparison</span></h2>
+<h2 id="h-cmp">六種拓撲一次比較 <span class="en">Side-by-side comparison</span></h2>
 <div class="scroll-x">
 <table class="tbl">
 <thead><tr><th>拓撲 Topology</th><th>電感平均電流</th><th>開關峰值電流</th><th>電流大小關係</th><th>限流值直接對應</th><th>開關電壓應力</th></tr></thead>
@@ -85,6 +101,8 @@
 <tr><td>BOOST</td><td class="m">IIN</td><td class="m">IIN + ΔI/2</td><td class="m">ISW &gt; IIN &gt; IOUT</td><td>輸入電流</td><td class="m">VOUT + VF</td></tr>
 <tr><td>四開關升降壓</td><td class="m">Buck：IOUT<br>過渡區：IIN + IOUT<br>Boost：IIN</td><td class="m">IL(avg) + ΔI/2</td><td>隨 VIN 改變；VIN 越低可用輸出電流越少</td><td>依模式而定</td><td class="m">輸入側 VIN<br>輸出側 VOUT</td></tr>
 <tr><td>SEPIC</td><td class="m">L1：IIN<br>L2：IOUT</td><td class="m">IIN + IOUT + ΔI<br>（原文 ≈ 1.2·(IIN+IOUT)）</td><td class="m">ISW &gt; IIN + IOUT</td><td>輸入 + 輸出電流之和</td><td class="m">VIN + VOUT + VF</td></tr>
+<tr><td>Flyback</td><td class="m">激磁電流（折算初級）</td><td class="m">IIN/D + ΔI/2</td><td class="m">ID,pk = n·IQ,pk</td><td>輸入電流（除以 D）</td><td class="m">VIN + n·(VOUT+VF)<br>＋漏感突波</td></tr>
+<tr><td>主動箝位 Forward</td><td class="m">LO：IOUT</td><td class="m">(IOUT + ΔIO/2)/n<br>+ ΔIm/2</td><td class="m">類似 BUCK，折算到初級 ÷ n</td><td>輸出電流 ÷ n</td><td class="m">VIN / (1 − D)</td></tr>
 </tbody>
 </table>
 </div>
@@ -104,7 +122,7 @@
 <a href="https://www.ti.com/lit/ta/ssztae5/ssztae5.pdf" target="_blank" rel="noopener">TI SSZTAE5</a>、
 <a href="https://www.edn.com/do-not-operate-a-four-switch-buck-boost-converter-in-buck-boost-mode/" target="_blank" rel="noopener">EDN</a>、
 <a href="https://www.analog.com/en/resources/analog-dialogue/articles/4-switch-buck-boost-controller-layout-for-low-emissions-single-hot-loop-vs-dual-hot-loop.html" target="_blank" rel="noopener">ADI</a>。
-頁面中的波形與計算為理想化教學模型，實際設計請以晶片規格書為準。
+05 Flyback、06 主動箝位 Forward 依一般工作原理與 PoE PD 常見設計值整理，應用背景見 <a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener">PoE PD 互動教學</a>。頁面中的波形與計算為理想化教學模型，實際設計請以晶片規格書為準。
 <br>Teaching models are idealized; always follow the IC datasheet for real designs.
 </footer>
 </div>
