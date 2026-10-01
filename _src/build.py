@@ -45,6 +45,8 @@ def nav(current, urls, site=False):
             items.append(f'<a href="{urls[key]}" target="_blank" rel="noopener">{inner}</a>')
         else:
             items.append(f'<span class="soon">{inner} · 準備中</span>')
+    items.append('<a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener"><b>↗ PoE PD</b>受電端系列</a>')
+    items.append('<a href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener"><b>↗ 多相 VRM</b>CPU 核心供電</a>')
     return "".join(items)
 
 

@@ -11,7 +11,7 @@
 </head>
 <body>
 <div class="wrap">
-<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><a href="./"><b>HOME</b>系列首頁</a><a href="boost.html"><b>01 BOOST</b>升壓</a><span class="cur" aria-current="page"><b>02 BUCK</b>降壓</span><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><a href="sepic.html"><b>04 SEPIC</b>單端初級電感</a><a href="flyback.html"><b>05 FLYBACK</b>返馳式</a><a href="acf.html"><b>06 ACF</b>主動箝位正激</a></nav>
+<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><a href="./"><b>HOME</b>系列首頁</a><a href="boost.html"><b>01 BOOST</b>升壓</a><span class="cur" aria-current="page"><b>02 BUCK</b>降壓</span><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><a href="sepic.html"><b>04 SEPIC</b>單端初級電感</a><a href="flyback.html"><b>05 FLYBACK</b>返馳式</a><a href="acf.html"><b>06 ACF</b>主動箝位正激</a><a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener"><b>↗ PoE PD</b>受電端系列</a><a href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener"><b>↗ 多相 VRM</b>CPU 核心供電</a></nav>
 <header>
 <div>
 <div class="eyebrow">DC-DC Topology Series · 02</div>
@@ -195,6 +195,8 @@
 <span class="en">The switch current limit bounds the peak, not the continuous rating. Size continuous output current by thermal limits.</span></li>
 <li><b>漣波比抓 20–40%</b><span class="src add">補充</span><br>ΔI 與 L·f<sub>SW</sub> 成反比。L 太小，峰值電流升高、容易碰到限流點、輸出漣波變大；L 太大，體積與 DCR 損耗增加，暫態反應變慢。
 <span class="en">Ripple scales with 1/(L·fSW). Too small an L raises the peak; too large slows transients and adds DCR loss.</span></li>
+<li><b>大電流低電壓：改用多相</b><span class="src add">補充</span><br>CPU／GPU 核心 1 V、上百安培時，單相的導通損耗（∝ I²）與元件電流都扛不住，會把 N 個同步 Buck 交錯並聯成多相 VRM，每相錯開 360°／N。見 <a href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener">多相 VRM 系列</a>（01 為什麼要多相、02 紋波抵消）。
+<span class="en">At ~1 V and 100 A+ (CPU/GPU cores), N interleaved synchronous bucks form a multi-phase VRM — see the multi-phase VRM series.</span></li>
 <li><b>最小導通時間</b><span class="src add">補充</span><br>高 VIN、低 VOUT、高頻時 D 很小，t<sub>ON</sub> = D / f<sub>SW</sub> 可能低於晶片的 min on-time，會出現脈衝跳躍或無法穩壓，這時要降頻或改用兩級轉換。
 <span class="en">At high step-down ratios tON = D/fSW can fall below the IC's minimum on-time. Lower fSW or use two stages.</span></li>
 <li><b>壓差與最大佔空比</b><span class="src add">補充</span><br>VIN 接近 VOUT 時，需要的 D 接近 100%，會受晶片最大佔空比與導通壓降限制而掉出穩壓範圍，設計時要用 VIN(min) 檢查。

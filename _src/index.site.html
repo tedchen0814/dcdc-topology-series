@@ -113,6 +113,15 @@
     </ol>
   </section>
 
+  <section class="panel" aria-labelledby="h-rel">
+    <h2 id="h-rel">相關系列 <span class="en">Related series</span></h2>
+    <div class="cards">
+      <div class="card" style="--c:var(--accent)"><span class="no">SERIES · DC-DC</span><h2>DC-DC 拓撲<small>Boost · Buck · 4-SW · SEPIC · Flyback · ACF</small></h2><p>六種拓撲的電流回路動畫與同步波形：開關電流、輸入／輸出電流的關係，以及限流值怎麼對應。</p><ul><li>同步 Buck 是多相 VRM 每一相的基礎</li><li>Flyback、ACF 是 PoE PD 常用的隔離拓撲</li></ul><span class="go">本系列 This series</span></div>
+      <a class="card" href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener" style="--c:var(--on)"><span class="no">SERIES · PoE PD</span><h2>PoE PD 受電端<small>Power over Ethernet · RJ45 → DC-DC</small></h2><p>從網路線到板上電壓：架構、握手狀態機、功率預算、DC-DC 拓撲選擇、PSE 端與 LLDP 功率協商。</p><ul><li>後段 DC-DC 連到 DC-DC 系列</li><li>IEEE 802.3af／at／bt</li></ul><span class="go">開啟 Open ↗</span></a>
+      <a class="card" href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener" style="--c:var(--teal)"><span class="no">SERIES · MULTI-PHASE VRM</span><h2>多相供電 VRM<small>CPU／GPU core power · 9 stations</small></h2><p>CPU 核心供電：交錯並聯與紋波抵消、DrMOS／SPS、電流均流、Load-line、相數切換、IMVP9／SVID、相數計算、佈局除錯。</p><ul><li>每一相就是同步 Buck</li><li>Intel Alder／Raptor Lake 公開參數</li></ul><span class="go">開啟 Open ↗</span></a>
+    </div>
+  </section>
+
   <footer>
     參考文件：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係〉-1 BOOST、-2 BUCK、-3 SEPIC（V1.0）；
     <a href="https://www.ti.com/lit/pdf/slva535" target="_blank" rel="noopener">TI SLVA535B</a>、
