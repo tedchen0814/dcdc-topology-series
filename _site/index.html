@@ -31,7 +31,7 @@
 </head>
 <body>
 <div class="wrap">
-<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><span class="cur" aria-current="page"><b>HOME</b>系列首頁</span><a href="boost.html"><b>01 BOOST</b>升壓</a><a href="buck.html"><b>02 BUCK</b>降壓</a><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><a href="sepic.html"><b>04 SEPIC</b>單端初級電感</a><a href="flyback.html"><b>05 FLYBACK</b>返馳式</a><a href="acf.html"><b>06 ACF</b>主動箝位正激</a><a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener"><b>↗ PoE PD</b>受電端系列</a><a href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener"><b>↗ 多相 VRM</b>CPU 核心供電</a></nav>
+<nav class="series" aria-label="系列 Series"><span class="lab">系列 Series</span><span class="cur" aria-current="page"><b>HOME</b>系列首頁</span><a href="boost.html"><b>01 BOOST</b>升壓</a><a href="buck.html"><b>02 BUCK</b>降壓</a><a href="4sw-buck-boost.html"><b>03 4-SW BUCK-BOOST</b>四開關升降壓</a><a href="sepic.html"><b>04 SEPIC</b>單端初級電感</a><a href="flyback.html"><b>05 FLYBACK</b>返馳式</a><a href="acf.html"><b>06 ACF</b>主動箝位正激</a><a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener"><b>↗ PoE PD</b>受電端系列</a><a href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener"><b>↗ 多相 VRM</b>CPU 核心供電</a><a href="https://power-amp-series.vercel.app/" target="_blank" rel="noopener"><b>↗ 功率放大器</b>Class A–D</a></nav>
 <header>
 <div>
 <div class="eyebrow">DC-DC Topology Series</div>
@@ -122,6 +122,7 @@
 <div class="card" style="--c:var(--accent)"><span class="no">SERIES · DC-DC</span><h2>DC-DC 拓撲<small>Boost · Buck · 4-SW · SEPIC · Flyback · ACF</small></h2><p>六種拓撲的電流回路動畫與同步波形：開關電流、輸入／輸出電流的關係，以及限流值怎麼對應。</p><ul><li>同步 Buck 是多相 VRM 每一相的基礎</li><li>Flyback、ACF 是 PoE PD 常用的隔離拓撲</li></ul><span class="go">本系列 This series</span></div>
 <a class="card" href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener" style="--c:var(--on)"><span class="no">SERIES · PoE PD</span><h2>PoE PD 受電端<small>Power over Ethernet · RJ45 → DC-DC</small></h2><p>從網路線到板上電壓：架構、握手狀態機、功率預算、DC-DC 拓撲選擇、PSE 端與 LLDP 功率協商。</p><ul><li>後段 DC-DC 連到 DC-DC 系列</li><li>IEEE 802.3af／at／bt</li></ul><span class="go">開啟 Open ↗</span></a>
 <a class="card" href="https://multiphase-vrm-series.vercel.app/" target="_blank" rel="noopener" style="--c:var(--teal)"><span class="no">SERIES · MULTI-PHASE VRM</span><h2>多相供電 VRM<small>CPU／GPU core power · 9 stations</small></h2><p>CPU 核心供電：交錯並聯與紋波抵消、DrMOS／SPS、電流均流、Load-line、相數切換、IMVP9／SVID、相數計算、佈局除錯。</p><ul><li>每一相就是同步 Buck</li><li>Intel Alder／Raptor Lake 公開參數</li></ul><span class="go">開啟 Open ↗</span></a>
+<a class="card" href="https://power-amp-series.vercel.app/" target="_blank" rel="noopener" style="--c:var(--off)"><span class="no">SERIES · POWER AMPLIFIER</span><h2>功率放大器<small>Class A · AB · B · C · D · phone smart PA</small></h2><p>導通角與效率、Class-D 的 PWM 與 H 橋、輸出濾波器設計，以手機喇叭為主軸。Smart PA 的 Class-H 升壓就是 Boost；Class-D 半橋和同步 Buck 是同一種開關結構。</p><ul><li>Boost：Smart PA 升壓電源</li><li>同步 Buck ↔ Class-D 半橋</li></ul><span class="go">開啟 Open ↗</span></a>
 </div>
 </section>
 <footer>
