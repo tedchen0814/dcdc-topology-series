@@ -57,6 +57,8 @@ body{
 .example{margin-top:14px;border:1.5px dashed var(--accent);border-radius:10px;padding:10px 14px;font-size:14px;background:var(--paper-2)}
 .example b{color:var(--accent)}
 .example .chain{font-family:var(--mono);font-size:13px;overflow-wrap:anywhere}
+.infeasible{border:2px solid var(--warn);color:var(--warn);background:var(--paper-2);border-radius:8px;padding:8px 12px;margin:0 0 8px;font-weight:700;font-size:13.5px;line-height:1.5}
+.legend .ve-note{flex-basis:100%;font-size:12px}
 
 /* header */
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
@@ -219,6 +221,7 @@ footer a{color:var(--accent)}
         <span><i style="border-color:var(--on)"></i>Q 導通時電流回路 Q-on loop</span>
         <span><i style="border-color:var(--off)"></i>Q 關斷時電流回路 Q-off loop</span>
         <label><input type="checkbox" id="chkHot" checked>顯示開關電流回路 Show hot loop</label>
+        <span class="ve-note">電路圖未畫出損耗元件：電感（或變壓器初級）兩端電壓依「損耗等效輸入」Ve 計算；開關耐壓另以實際 VIN 保守估算。The loss element is not drawn: inductor voltages use the loss-equivalent input Ve; switch stress is a separate, conservative estimate at the actual VIN.</span>
       </div>
     </section>
 
@@ -229,6 +232,7 @@ footer a{color:var(--accent)}
         <input type="range" id="scrub" min="0" max="300" step="0.5" value="0" aria-label="時間游標 Time cursor">
         <span id="scrubVal" class="num">0.00 T</span>
       </div>
+      <div class="infeasible" id="wfWarn" role="alert" hidden></div>
       <div class="scroll-x">
         <svg id="wave" viewBox="0 0 620 424" role="img" aria-label="{{WAVE_ARIA}}">
           <g id="wfStatic"></g>
@@ -336,6 +340,10 @@ const fetRating = (v, margin = 0.2) => { const need = v/(1 - margin), r = FET_V.
     const rows = C.rows;
     $('wave').setAttribute('viewBox', `0 0 620 ${rows.length*ROW + 4}`);
     const g = $('wfStatic'); g.innerHTML = '';
+    // outside the model's valid range: say so instead of drawing a normal-looking steady state
+    $('wfWarn').hidden = !M.infeasible;
+    $('wfWarn').textContent = M.infeasible ? '⚠ 指定條件無法穩壓／超出模型範圍：' + M.infeasible : '';
+    g.style.opacity = M.infeasible ? .35 : 1;
     rows.forEach((r, i) => {
       const top = i*ROW, y0 = top + 26, y1 = top + 96;
       const [lo, hi] = r.range(M);
@@ -379,6 +387,7 @@ const fetRating = (v, margin = 0.2) => { const need = v/(1 - margin), r = FET_V.
   // ---------- calc + takeaway ----------
   function drawCalc(){
     const c = C.calc(M, P);
+    if (M.infeasible) c.badges.unshift(['warn', '無法穩壓：以下數值僅供示意，見波形區說明']);
     $('badges').innerHTML = c.badges.map(([cls, txt]) => `<span class="badge ${cls}">${txt}</span>`).join('');
     $('formulas').innerHTML = c.rows.map(([zh, en, eq, res]) =>
       `<div class="f-row"><div class="name">${zh}<span class="en">${en}</span></div><div class="eq">${eq}</div><div class="res">${res}</div></div>`).join('');

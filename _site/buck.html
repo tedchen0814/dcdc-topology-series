@@ -99,6 +99,7 @@
 <span><i style="border-color:var(--on)"></i>Q 導通時電流回路 Q-on loop</span>
 <span><i style="border-color:var(--off)"></i>Q 關斷時電流回路 Q-off loop</span>
 <label><input type="checkbox" id="chkHot" checked>顯示開關電流回路 Show hot loop</label>
+<span class="ve-note">電路圖未畫出損耗元件：電感（或變壓器初級）兩端電壓依「損耗等效輸入」Ve 計算；開關耐壓另以實際 VIN 保守估算。The loss element is not drawn: inductor voltages use the loss-equivalent input Ve; switch stress is a separate, conservative estimate at the actual VIN.</span>
 </div>
 </section>
 <section class="panel" aria-labelledby="h-wave">
@@ -108,6 +109,7 @@
 <input type="range" id="scrub" min="0" max="300" step="0.5" value="0" aria-label="時間游標 Time cursor">
 <span id="scrubVal" class="num">0.00 T</span>
 </div>
+<div class="infeasible" id="wfWarn" role="alert" hidden></div>
 <div class="scroll-x">
 <svg id="wave" viewBox="0 0 620 424" role="img" aria-label="SW 點電壓、電感電流、開關管電流、二極體電流波形">
 <g id="wfStatic"></g>
@@ -124,8 +126,8 @@
 <div class="phases">
 <article class="phase on active" id="cardOn">
 <h3>Q 導通（t<sub>ON</sub> = D·T）</h3>
-<p>SW 點經 Q 接到 VIN，SW = VIN。電感兩端電壓為 VIN − VOUT（左高右低），VIN 對電感充電，iL 線性上升。Q 與 L 串聯，<b>iQ = iL</b>；二極體 D 反偏，<b>iD = 0</b>。</p>
-<p class="en">The SW node is tied to VIN through Q. L sees VIN − VOUT and its current ramps up. Q is in series with L, so iQ = iL. D is reverse-biased, so iD = 0.</p>
+<p>SW 點經 Q 接到輸入，SW ≈ VIN（波形以損耗等效 Ve = VIN·η 繪製）。電感兩端電壓為 Ve − VOUT（左高右低），VIN 對電感充電，iL 線性上升。Q 與 L 串聯，<b>iQ = iL</b>；二極體 D 反偏，<b>iD = 0</b>。</p>
+<p class="en">The SW node is tied to the input through Q (drawn at the loss-equivalent Ve = η·VIN). L sees Ve − VOUT and its current ramps up. Q is in series with L, so iQ = iL. D is reverse-biased, so iD = 0.</p>
 </article>
 <article class="phase off" id="cardOff">
 <h3 id="cardOffTitle">Q 關斷（t<sub>OFF</sub> = (1−D)·T）</h3>
@@ -236,12 +238,15 @@ model(P){
 const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100;
 // losses modelled as a series drop at the input: the inductor sees ve = η·VIN,
 // so volt-second balance and the average currents (IIN, IOUT) hold together
-const ve = Math.max(vin*eta, vout/0.98);
-const Dccm = vout/ve;
-const dIccm = (ve - vout)*Dccm/(L*f);
-const m = {vin, vout, iout, eta, ve, Dccm, dIccm, isw:P.isw, dropout: vout/(vin*eta) > 0.95};
+// Never raise ve to force regulation: if the required duty exceeds DMAX, flag it as unreachable.
+const ve = vin*eta, DMAX = 0.98, Dreq = vout/ve, ok = Dreq <= DMAX;
+const Dccm = Math.min(Dreq, DMAX);
+const vDraw = ok ? ve : vout/DMAX;                 // only to sketch the unreachable case
+const dIccm = (vDraw - vout)*Dccm/(L*f);
+const m = {vin, vout, iout, eta, ve, Dreq, Dccm, dIccm, isw:P.isw, dropout: ok && Dreq > 0.95,
+infeasible: ok ? '' : `所需佔空比 D = VOUT / Ve = ${(Dreq*100).toFixed(1)}%，超過最大 ${DMAX*100}%。效率 ${(eta*100).toFixed(0)}% 時 Ve = VIN·η = ${fx(ve,2)} V，不足以穩壓到 ${fx(vout,1)} V。波形以 D = ${DMAX*100}% 示意，不代表指定輸出成立。`};
 let dcm = null;
-if (iout < dIccm/2) {
+if (ok && iout < dIccm/2) {
 const D = Math.sqrt(2*L*f*vout*iout/((ve - vout)*ve));
 const Ipk = (ve - vout)*D/(L*f), D2 = D*(ve - vout)/vout;
 if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Imin:0, Imax:Ipk, dI:Ipk};
@@ -253,13 +258,13 @@ m.ratio = dIccm/iout;
 return m;
 },
 at(M, tau){
-const {D, D2, Imin, Imax, mode, vin, vout} = M;
+const {D, D2, Imin, Imax, mode, vout} = M;
 let ph, iL;
 if (tau < D) { ph = 'on'; iL = Imin + (Imax - Imin)*tau/D; }
 else if (mode === 'CCM' || tau < D + D2) { ph = 'off'; iL = Imax - (Imax - Imin)*(tau - D)/D2; }
 else { ph = 'idle'; iL = 0; }
 iL = Math.max(0, iL);
-const s = {ph, iL, iQ: ph==='on'?iL:0, iD: ph==='off'?iL:0, vsw: ph==='on'?vin:(ph==='off'?-VF:vout), flow: iL/Math.max(Imax, 1e-6)};
+const s = {ph, iL, iQ: ph==='on'?iL:0, iD: ph==='off'?iL:0, vsw: ph==='on'?M.ve:(ph==='off'?-VF:vout), flow: iL/Math.max(Imax, 1e-6)};
 s.read = {tSw:'SW = '+fx(s.vsw,1)+' V', tIl:'iL = '+fx(iL)+' A', tIq:'iQ = '+fx(s.iQ)+' A', tId:'iD = '+fx(s.iD)+' A'};
 return s;
 },
@@ -267,9 +272,9 @@ rows: (() => {
 const iRange = M => [0, Math.max(M.Imax, M.isw)*1.14];
 return [
 {k:'vsw', zh:'SW 點電壓', en:'SW node voltage', unit:'V', c:'var(--accent)', range:M=>[-1.5, M.vin*1.12],
-pts:M => { const {D, D2, vin, vout} = M, E = D + D2;
-return M.mode==='CCM' ? [[0,vin],[D,vin],[D,-VF],[1,-VF],[1,vin]] : [[0,vin],[D,vin],[D,-VF],[E,-VF],[E,vout],[1,vout],[1,vin]]; },
-refs:M => { const r = [{v:M.vin, c:'var(--muted)', l:'VIN', side:'end'}]; if (M.mode==='DCM') r.push({v:M.vout, c:'var(--muted)', l:'VOUT', side:'mid'}); return r; }},
+pts:M => { const {D, D2, ve, vout} = M, E = D + D2;
+return M.mode==='CCM' ? [[0,ve],[D,ve],[D,-VF],[1,-VF],[1,ve]] : [[0,ve],[D,ve],[D,-VF],[E,-VF],[E,vout],[1,vout],[1,ve]]; },
+refs:M => { const r = [{v:M.vin, c:'var(--muted)', l:'VIN', side:'end'}, {v:M.ve, c:'var(--accent)', l:'Ve = VIN·η', side:'start'}]; if (M.mode==='DCM') r.push({v:M.vout, c:'var(--muted)', l:'VOUT', side:'mid'}); return r; }},
 {k:'iL', zh:'電感 L 電流', en:'Inductor current', unit:'A', c:'var(--ink)', range:iRange,
 pts:M => M.mode==='CCM' ? [[0,M.Imin],[M.D,M.Imax],[1,M.Imin]] : [[0,0],[M.D,M.Imax],[M.D+M.D2,0],[1,0]],
 refs:M => [{v:M.iout, c:'var(--ink)', l:'IOUT', side:'end'}, {v:M.Imax, c:'var(--on)', l:'ILmax', side:'mid', noline:true}]},

@@ -52,6 +52,8 @@ color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
 .example{margin-top:14px;border:1.5px dashed var(--accent);border-radius:10px;padding:10px 14px;font-size:14px;background:var(--paper-2)}
 .example b{color:var(--accent)}
 .example .chain{font-family:var(--mono);font-size:13px;overflow-wrap:anywhere}
+.infeasible{border:2px solid var(--warn);color:var(--warn);background:var(--paper-2);border-radius:8px;padding:8px 12px;margin:0 0 8px;font-weight:700;font-size:13.5px;line-height:1.5}
+.legend .ve-note{flex-basis:100%;font-size:12px}
 /* header */
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
 .eyebrow{font-family:var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;font-size:15px}

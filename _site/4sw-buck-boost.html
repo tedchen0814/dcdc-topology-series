@@ -122,6 +122,7 @@
 <span><i style="border-color:var(--on)"></i>Q 導通時電流回路 Q-on loop</span>
 <span><i style="border-color:var(--off)"></i>Q 關斷時電流回路 Q-off loop</span>
 <label><input type="checkbox" id="chkHot" checked>顯示開關電流回路 Show hot loop</label>
+<span class="ve-note">電路圖未畫出損耗元件：電感（或變壓器初級）兩端電壓依「損耗等效輸入」Ve 計算；開關耐壓另以實際 VIN 保守估算。The loss element is not drawn: inductor voltages use the loss-equivalent input Ve; switch stress is a separate, conservative estimate at the actual VIN.</span>
 </div>
 </section>
 <section class="panel" aria-labelledby="h-wave">
@@ -131,6 +132,7 @@
 <input type="range" id="scrub" min="0" max="300" step="0.5" value="0" aria-label="時間游標 Time cursor">
 <span id="scrubVal" class="num">0.00 T</span>
 </div>
+<div class="infeasible" id="wfWarn" role="alert" hidden></div>
 <div class="scroll-x">
 <svg id="wave" viewBox="0 0 620 424" role="img" aria-label="SW1、SW2 節點電壓、電感電流、輸入側與輸出側開關電流波形">
 <g id="wfStatic"></g>
@@ -244,6 +246,7 @@
 (() => {
 const DBUCK_MAX = 0.9, DBOOST_MIN = 0.1;
 const MODE = {
+na:    {name:'無法穩壓', en:'unreachable', c:'var(--muted)'},
 buck:  {name:'Buck 降壓', en:'buck mode', c:'var(--accent)'},
 bb:    {name:'過渡區 Buck-Boost', en:'transition', c:'var(--warn)'},
 boost: {name:'Boost 升壓', en:'boost mode', c:'var(--teal)'}
@@ -257,12 +260,14 @@ let iin = iout*vout/ve;
 const Dbk = vout/ve, Dbst = 1 - ve/vout;
 let mode, D, avg, dI, vlOn, vlOff;
 if (Dbk <= DBUCK_MAX) { mode = 'buck'; D = Dbk; avg = iout; vlOn = ve - vout; vlOff = -vout; }
-else if (Dbst >= DBOOST_MIN) { mode = 'boost'; D = Math.min(0.95, Dbst); avg = iout/(1 - D); vlOn = ve; vlOff = ve - vout; }
+else if (Dbst >= DBOOST_MIN) { mode = 'boost'; D = Math.min(0.95, Dbst); avg = iin; vlOn = ve; vlOff = ve - vout; }
 else { mode = 'bb'; D = vout/(ve + vout); avg = iin + iout; vlOn = ve; vlOff = -vout; }
 dI = vlOn*D/(L*f);
-if (mode === 'boost') iin = avg;   // equals IOUT·VOUT/Ve unless D hit its 95% clamp
+// never re-solve IIN or bend η to hide a duty-cycle limit: flag it instead
+const infeasible = mode === 'boost' && Dbst > 0.95
+? `Boost 所需佔空比 D = 1 − Ve / VOUT = ${(Dbst*100).toFixed(1)}%，超過最大 95%：效率 ${(eta*100).toFixed(0)}% 時 Ve = ${fx(ve,2)} V 升不到 ${fx(vout,1)} V。波形以 D = 95% 示意，伏秒與效率都不成立。` : '';
 return {mode, vin, vout, iout, eta, ve, vlOn, vlOff, iin, Dbk, Dbst, D, D2:1-D, avg, dI, Imax:avg + dI/2, Imin:avg - dI/2,
-ilim:P.ilim, ioutMax:Math.max(0, P.ilim - dI/2)*iout/avg};
+ilim:P.ilim, ioutMax:infeasible ? 0 : Math.max(0, P.ilim - dI/2)*iout/avg, infeasible};
 }
 // closed switches per mode and phase
 const CLOSED = {
@@ -283,7 +288,7 @@ charge: 'M50,144 V70 H430 V270 H50 V196'          // VIN → QH1 → L → QL2 �
 };
 const CARDS = {
 buck: {
-on: ['QH1 導通（t<sub>ON</sub> = D·T）', 'Buck 模式下 QH2 常通、QL2 常關，輸出側只是一條通路。QH1 導通時 SW1 = VIN，電流經 QH1 → L → QH2 流向輸出，同時對電感充電，iL 上升。這段時間輸入電流 = iL。', 'QH2 stays on and QL2 stays off. With QH1 on, SW1 = VIN; current flows VIN → QH1 → L → QH2 to the output and iL ramps up. Input current equals iL.'],
+on: ['QH1 導通（t<sub>ON</sub> = D·T）', 'Buck 模式下 QH2 常通、QL2 常關，輸出側只是一條通路。QH1 導通時 SW1 ≈ VIN（波形以損耗等效 Ve 繪製），電流經 QH1 → L → QH2 流向輸出，同時對電感充電，iL 上升。這段時間輸入電流 = iL。', 'QH2 stays on and QL2 stays off. With QH1 on, SW1 ≈ VIN (drawn at Ve); current flows VIN → QH1 → L → QH2 to the output and iL ramps up. Input current equals iL.'],
 off: ['QL1 導通（同步續流）', 'QH1 關斷、QL1 導通，取代 BUCK 頁的蕭特基二極體，所以沒有 V<sub>F</sub> 損耗。SW1 = 0，電感經 QL1 → L → QH2 續流，iL 下降，輸入電流 = 0。', 'QH1 off, QL1 on: a synchronous rectifier replaces the diode. SW1 = 0 and the inductor freewheels through QL1 and QH2; iL ramps down and input current is zero.'],
 mode: ['Buck 模式：電感平均電流 = I<sub>OUT</sub>', 'VIN 明顯高於 VOUT。只有輸入側 QH1／QL1 在切換，和 BUCK 頁的行為相同，輸入側是硬切換的 hot loop。', 'Only the input half-bridge switches, exactly like the buck page. The input-side loop is the hot loop.']
 },
@@ -293,7 +298,7 @@ off: ['QH2 導通（放電）', 'QL2 關斷、QH2 導通，取代 BOOST 頁的�
 mode: ['Boost 模式：電感平均電流 = I<sub>IN</sub>', 'VIN 明顯低於 VOUT。只有輸出側 QL2／QH2 在切換，和 BOOST 頁的行為相同，輸出側是硬切換的 hot loop。', 'Only the output half-bridge switches, like the boost page. The output-side loop is the hot loop.']
 },
 bb: {
-on: ['QH1 + QL2 導通（充電）', '四顆開關每週期都在切換。QH1 與 QL2 同時導通，電感跨接在 VIN 與地之間充電，iL 上升；這段時間輸出完全由 C<sub>OUT</sub> 供電。', 'All four switches toggle. QH1 and QL2 conduct together and L charges from VIN; COUT alone feeds the load.'],
+on: ['QH1 + QL2 導通（充電）', '四顆開關每週期都在切換。QH1 與 QL2 同時導通，電感跨接在輸入（損耗等效 Ve）與地之間充電，iL 上升；這段時間輸出完全由 C<sub>OUT</sub> 供電。', 'All four switches toggle. QH1 and QL2 conduct together and L charges from Ve (the loss-equivalent input); COUT alone feeds the load.'],
 off: ['QL1 + QH2 導通（放電）', 'QL1 與 QH2 同時導通，電感跨接在地與 VOUT 之間，把能量送到輸出，iL 下降；這段時間輸入端沒有電流。', 'QL1 and QH2 conduct; L sits between ground and VOUT and delivers energy. No input current flows in this interval.'],
 mode: ['過渡區：電感平均電流 = I<sub>IN</sub> + I<sub>OUT</sub>', 'VIN 接近 VOUT。輸入只在充電段流入、輸出只在放電段流出，所以電感要同時扛兩者，是三種模式中電流應力最大、效率最低的。兩側 hot loop 都在硬切換。', 'VIN ≈ VOUT. Input current flows only while charging and output current only while discharging, so the inductor carries IIN + IOUT. This is the worst case for stress and efficiency.']
 }
@@ -341,7 +346,7 @@ at(M, tau){
 const {D, Imin, Imax, mode, vin, vout} = M;
 const on = tau < D, ph = on ? 'on' : 'off';
 const iL = on ? Imin + (Imax - Imin)*tau/D : Imax - (Imax - Imin)*(tau - D)/(1 - D);
-const v1 = mode==='boost' ? vin : (on ? vin : 0);
+const v1 = mode==='boost' ? M.ve : (on ? M.ve : 0);   // drawn at the loss-equivalent Ve
 const v2 = mode==='buck' ? vout : (on ? 0 : vout);
 const i1 = mode==='boost' ? iL : (on ? iL : 0);
 const i2 = mode==='buck' ? iL : (on ? 0 : iL);
@@ -353,8 +358,8 @@ rows: (() => {
 const iRange = M => [Math.min(0, M.Imin)*1.2, Math.max(M.Imax, M.ilim)*1.14];
 const avgLbl = M => ({buck:'IL(avg) = IOUT', boost:'IL(avg) = IIN', bb:'IL(avg) = IIN+IOUT'})[M.mode];
 return [
-{k:'v1', zh:'SW1 電壓（輸入側）', en:'SW1 node voltage', unit:'V', c:'var(--accent)', range:M=>[-1, Math.max(M.vin, 1)*1.14],
-pts:M => M.mode==='boost' ? [[0,M.vin],[1,M.vin]] : [[0,M.vin],[M.D,M.vin],[M.D,0],[1,0],[1,M.vin]],
+{k:'v1', zh:'SW1 電壓（輸入側，以 Ve 繪製）', en:'SW1 node (drawn at Ve)', unit:'V', c:'var(--accent)', range:M=>[-1, Math.max(M.vin, 1)*1.14],
+pts:M => M.mode==='boost' ? [[0,M.ve],[1,M.ve]] : [[0,M.ve],[M.D,M.ve],[M.D,0],[1,0],[1,M.ve]],
 refs:M => [{v:M.vin, c:'var(--muted)', l:'VIN', side:'end'}, {v:M.ve, c:'var(--muted)', l:'Ve = VIN·η', side:'start'}]},
 {k:'v2', zh:'SW2 電壓（輸出側）', en:'SW2 node voltage', unit:'V', c:'var(--teal)', range:M=>[-1, Math.max(M.vout, 1)*1.14],
 pts:M => M.mode==='buck' ? [[0,M.vout],[1,M.vout]] : [[0,0],[M.D,0],[M.D,M.vout],[1,M.vout],[1,0]],
@@ -426,14 +431,16 @@ const W = 620, X0 = 52, X1 = 604, Y0 = 16, Y1 = 214;
 const lo = Math.max(2, P.vout*0.4), hi = Math.min(36, P.vout*3);
 const N = 240, pts = [];
 for (let i = 0; i <= N; i++) { const v = lo + (hi - lo)*i/N; pts.push(core(P, v)); }
-const ymax = Math.max(...pts.map(p => p.Imax), P.ilim, P.iout, ...pts.map(p => p.ioutMax))*1.1;
+const okPts = pts.filter(p => !p.infeasible);
+const ymax = Math.max(...okPts.map(p => p.Imax), P.ilim, P.iout, ...okPts.map(p => p.ioutMax))*1.1;
 const X = v => X0 + (v - lo)/(hi - lo)*(X1 - X0), Y = a => Y1 - a/ymax*(Y1 - Y0);
 let h = '';
 // mode bands
 let start = 0;
 for (let i = 1; i <= N + 1; i++) {
-if (i === N + 1 || pts[i].mode !== pts[start].mode) {
-const a = X(pts[start].vin), bnd = X(pts[Math.min(i, N)].vin), md = MODE[pts[start].mode];
+const key = p => p.infeasible ? 'na' : p.mode;
+if (i === N + 1 || key(pts[i]) !== key(pts[start])) {
+const a = X(pts[start].vin), bnd = X(pts[Math.min(i, N)].vin), md = MODE[key(pts[start])];
 h += `<rect x="${a}" y="${Y0}" width="${Math.max(0, bnd - a)}" height="${Y1 - Y0}" fill="${md.c}" fill-opacity=".09"/>`;
 if (bnd - a > 46) h += `<text x="${(a + bnd)/2}" y="${Y0 + 13}" text-anchor="middle" class="ref-lbl" fill="${md.c}">${md.name}</text>`;
 start = i;
@@ -449,10 +456,10 @@ h += `<text x="${X0 - 40}" y="${Y0 + 4}" class="tick">A</text>`;
 // reference lines
 h += `<line x1="${X0}" x2="${X1}" y1="${Y(P.ilim)}" y2="${Y(P.ilim)}" class="ref" stroke="var(--warn)"/><text x="${X1 - 2}" y="${Y(P.ilim) - 4}" text-anchor="end" class="ref-lbl" fill="var(--warn)">ILIM ${fx(P.ilim,1)} A</text>`;
 h += `<line x1="${X0}" x2="${X1}" y1="${Y(P.iout)}" y2="${Y(P.iout)}" class="ref" stroke="var(--ink)"/><text x="${X1 - 2}" y="${Y(P.iout) + 12}" text-anchor="end" class="ref-lbl" fill="var(--ink)">IOUT ${fx(P.iout)} A</text>`;
-const line = (key, color) => `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + X(p.vin).toFixed(1) + ',' + Y(p[key]).toFixed(1)).join(' ')}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round"/>`;
+const line = (key, color) => { let d = '', pen = 'M'; pts.forEach(p => { if (p.infeasible) { pen = 'M'; return; } d += pen + X(p.vin).toFixed(1) + ',' + Y(p[key]).toFixed(1) + ' '; pen = 'L'; }); return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round"/>`; };
 h += line('Imax', 'var(--on)') + line('ioutMax', 'var(--ok)');
 // current VIN marker
-if (cur.vin >= lo && cur.vin <= hi) {
+if (cur.vin >= lo && cur.vin <= hi && !cur.infeasible) {
 const x = X(cur.vin);
 h += `<line x1="${x}" x2="${x}" y1="${Y0}" y2="${Y1}" stroke="var(--ink)" stroke-width="1.3" stroke-opacity=".6"/>`;
 h += `<circle cx="${x}" cy="${Y(cur.Imax)}" r="4.5" fill="var(--on)" stroke="var(--paper)" stroke-width="2"/>`;

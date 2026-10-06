@@ -172,17 +172,20 @@ window.CFG = {
     const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100;
     const iin = iout*vout/(vin*eta);
     // losses as a series drop at the input: the inductor sees ve = η·VIN (keeps volt-seconds and averages consistent)
-    const ve = vin*eta;
-    const Dccm = Math.min(0.95, Math.max(0.02, 1 - ve/vout));
-    const dIccm = ve*Dccm/(L*f);
-    const m = {vin, vout, iout, eta, ve, iin, Dccm, dIccm, isw:P.isw};
+    const ve = vin*eta, DMAX = 0.95, DMIN = 0.02, Dreq = 1 - ve/vout;
+    const Dccm = Math.min(DMAX, Math.max(DMIN, Dreq));
+    const dIccm = ve*Dccm/(L*f), dIreq = ve*Math.max(Dreq, 0)/(L*f);
+    const m = {vin, vout, iout, eta, ve, iin, Dreq, Dccm, dIccm, isw:P.isw};
     let dcm = null;
-    if (iin < dIccm/2) {
+    if (Dreq > 0 && iin < dIreq/2) {
       const D = Math.sqrt(2*L*f*(vout - ve)*iin/(ve*vout));
       const Ipk = ve*D/(L*f), D2 = D*ve/(vout - ve);
       if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Imin:0, Imax:Ipk, dI:Ipk};
     }
     Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Imin:Math.max(0, iin-dIccm/2), Imax:iin+dIccm/2, dI:dIccm});
+    m.infeasible = m.mode === 'DCM' ? ''
+      : Dreq > DMAX ? `所需佔空比 D = 1 − Ve / VOUT = ${(Dreq*100).toFixed(1)}%，超過最大 ${DMAX*100}%：升壓比過高，指定輸出在此效率下不可達。波形以 D = ${DMAX*100}% 示意。`
+      : Dreq < DMIN ? `所需佔空比 D = ${(Dreq*100).toFixed(1)}%，低於最小 ${DMIN*100}%（最小導通時間）：VOUT 太接近 Ve = VIN·η = ${fx(ve,2)} V，無法穩定調節。波形以 D = ${DMIN*100}% 示意。` : '';
     m.ioutMaxPdf = (P.isw/2)*vin*eta/vout;
     m.ioutMaxTheory = Math.max(0, P.isw - dIccm/2)*vin*eta/vout;
     m.ratio = dIccm/iin;

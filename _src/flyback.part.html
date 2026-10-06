@@ -114,7 +114,7 @@ DC <span>→</span> DC · ISOLATED
   <span class="en">Primary current flows only during tON, so the switch peak is about IIN/D + ΔI/2. The diode conducts only during tOFF and its peak is n times the switch peak. A higher turns ratio lowers the primary peak but raises the switch voltage.</span></p>
 <div class="example">
   <b>PoE PD 範例（at Class 4）：48 V → 12 V／2 A，N<sub>P</sub>:N<sub>S</sub> = 4:1，L<sub>m</sub> 150 µH，250 kHz</b>
-  <div class="chain">反射電壓 n·(VOUT+VF) = 4 × 12.4 = 49.6 V → D = 49.6／(48 + 49.6) = 50.8% → IIN = 24 W／0.88／48 V = 0.568 A → 初級峰值 ≈ 0.568／0.508 + ΔI／2 ≈ 1.44 A → 次級峰值 ≈ 4 × 1.44 = 5.8 A；Q 承受 97.6 V + 漏感突波</div>
+  <div class="chain">反射電壓 V<sub>R</sub> = n·(VOUT+VF) = 4 × 12.4 = 49.6 V → Ve = VIN·η·(VOUT+VF)／VOUT = 48 × 0.88 × 12.4／12 ≈ 43.6 V → D = 49.6／(43.6 + 49.6) ≈ 53.2% → IIN = 24 W／0.88／48 V = 0.568 A → 初級峰值 ≈ 0.568／0.532 + ΔI／2 ≈ 1.38 A → 次級峰值 ≈ 4 × 1.38 ≈ 5.51 A；Q 承受 VIN + V<sub>R</sub> = 97.6 V + 漏感突波</div>
   <span class="en">Load it with the “PoE at” preset; the numbers above are illustrative design values, not from a specific reference design.</span>
 </div>
 <!--#NOTE_KEY-->
@@ -182,15 +182,16 @@ window.CFG = {
     // so the primary sees ve and ve·IIN = (VOUT + VF)·IOUT. Averages then match IIN and IOUT exactly.
     const vo = vout + VF, vr = n*vo;
     const veRaw = vin*eta*vo/vout, ve = Math.min(vin, veRaw), iin = vo*iout/ve, pin = vin*iin;
-    const Dccm = Math.min(0.9, vr/(ve + vr));
-    const dIccm = ve*Dccm/(L*f), ion = iin/Dccm;
-    const m = {vin, vout, iout, eta, n, vo, vr, ve, etaCapped: veRaw > vin, etaMax: vout/vo, iin, Dccm, dIccm, isw:P.isw, vclamp: vin + 1.5*vr};
+    const DMAX = 0.9, Dreq = vr/(ve + vr), Dccm = Math.min(DMAX, Dreq);
+    const dIccm = ve*Dccm/(L*f), ion = iin/Dccm, dIreq = ve*Dreq/(L*f), ionReq = iin/Dreq;
+    const m = {vin, vout, iout, eta, n, vo, vr, ve, etaCapped: veRaw > vin, etaMax: vout/vo, iin, Dreq, Dccm, dIccm, isw:P.isw, vclamp: vin + 1.5*vr};
     let dcm = null;
-    if (ion < dIccm/2) {
+    if (ionReq < dIreq/2) {
       const D = Math.sqrt(2*L*f*iin/ve), Ipk = ve*D/(L*f), D2 = D*ve/vr;
       if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Imin:0, Imax:Ipk, dI:Ipk};
     }
     Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Imin:ion - dIccm/2, Imax:ion + dIccm/2, dI:dIccm});
+    m.infeasible = m.mode === 'CCM' && Dreq > DMAX ? `所需佔空比 D = V<sub>R</sub> / (Ve + V<sub>R</sub>) = ${(Dreq*100).toFixed(1)}%，超過最大 ${DMAX*100}%：匝比太大或 VIN 太低，指定輸出不可達。波形以 D = ${DMAX*100}% 示意。`.replace(/<\/?sub>/g, '') : '';
     m.isecPk = n*m.Imax;
     m.vd = vout + vin/n;
     m.ioutMax = Math.max(0, (P.isw - dIccm/2)*Dccm*ve/vo);
@@ -236,7 +237,7 @@ window.CFG = {
     const F = fx, b = [];
     b.push(['info', m.mode==='CCM' ? 'CCM 連續導通 continuous' : 'DCM 不連續導通 discontinuous']);
     b.push(m.isw >= m.Imax ? ['ok', `ILIM ≥ 初級峰值，餘量 ${((m.isw/m.Imax-1)*100).toFixed(0)}%`] : ['warn', '會觸發限流：ILIM &lt; 初級峰值']);
-    { const r = fetRating(m.vclamp); b.push([r.ok ? 'ok' : 'warn', `VDS 含突波約 ${F(m.vclamp,0)} V；留 20% 餘量需 ≥ ${F(r.need,0)} V → 選 ${r.v ?? '—'} V MOSFET${r.ok ? '' : '（高於 PoE 常用的 150–200 V，建議降低匝比或改善箝位）'}`]); }
+    { const r = fetRating(m.vclamp); b.push([r.ok ? 'ok' : 'warn', `VDS 含突波約 ${F(m.vclamp,0)} V；應力不超過額定 80% → 需求額定 ≥ ${F(m.vclamp,0)}／0.8 = ${F(r.need,0)} V → 選 ${r.v ?? '—'} V MOSFET${r.ok ? '' : '（高於 PoE 常用的 150–200 V，建議降低匝比或改善箝位）'}`]); }
     if (m.etaCapped) b.push(['warn', `η 高於二極體壓降允許的上限 ${(m.etaMax*100).toFixed(0)}%（VOUT / (VOUT + VF)），以上限計算；更高效率需同步整流`]);
     if (m.D > 0.6) b.push(['warn', 'D > 60%，匝比偏大或 VIN 太低']);
     const rows = [['損耗等效輸入電壓', 'Loss-equivalent input', `Ve = <b>VIN · η · (VOUT + VF) / VOUT</b>：二極體壓降另計，其餘損耗看成輸入端串聯壓降；初級導通時激磁電感兩端為 Ve，關斷時為 −V<sub>R</sub>。開關耐壓仍以實際 VIN 計算`, F(m.ve,2)+' V']];

@@ -199,21 +199,27 @@ window.CFG = {
     // losses: diode drop VF explicit, the rest as a series drop at the input (ve), so ve·IIN = (VOUT+VF)·IOUT
     const vo = vout + VF, veOf = v => Math.min(v, v*eta*vo/vout);
     const ve = veOf(vin), iin = vo*iout/ve, aV = ve/n - vo;       // aV: voltage across LO while Q1 is on
-    const Dccm = Math.min(0.72, n*vo/ve), dIccm = aV*Dccm/(Lo*f);
-    const m = {vin, vout, iout, eta, n, vo, ve, etaCapped: vin*eta*vo/vout > vin, etaMax: vout/vo, iin, Dccm, dIccm, isw:P.isw};
+    const DMAX = 0.72, Dreq = n*vo/ve, Dccm = Math.min(DMAX, Dreq);
+    const aVdraw = Dreq <= DMAX ? aV : vo*(1 - DMAX)/DMAX;          // only to sketch the unreachable case
+    const dIccm = aVdraw*Dccm/(Lo*f), dIreq = aV*Dreq/(Lo*f);
+    const m = {vin, vout, iout, eta, n, vo, ve, etaCapped: vin*eta*vo/vout > vin, etaMax: vout/vo, iin, Dreq, Dccm, dIccm, isw:P.isw};
     let dcm = null;
-    if (iout < dIccm/2) {                                         // diode rectifiers: iLo cannot go negative
+    if (aV > 0 && iout < dIreq/2) {                               // diode rectifiers: iLo cannot go negative
       const D = Math.sqrt(2*iout*Lo*f/(aV*(1 + aV/vo))), Ipk = aV*D/(Lo*f), D2 = D*aV/vo;
-      if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Iomin:0, Iomax:Ipk, dIo:Ipk};
+      if (D + D2 < 1 && D <= DMAX) dcm = {mode:'DCM', D, D2, Iomin:0, Iomax:Ipk, dIo:Ipk};
     }
     Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Iomin:iout - dIccm/2, Iomax:iout + dIccm/2, dIo:dIccm});
+    m.infeasible = m.mode === 'CCM' && Dreq > DMAX ? `所需佔空比 D = n·(VOUT + VF) / Ve = ${(Dreq*100).toFixed(1)}%，超過主動箝位上限 ${DMAX*100}%（匝比已到可調整的最小值或 VIN 太低）：指定輸出不可達。波形以 D = ${DMAX*100}% 示意。` : '';
     m.dIm = ve*m.D/(Lm*f);
     m.iqpk = m.Iomax/n + m.dIm/2;
     m.vq = vin/(1 - m.D); m.vcc = vin*m.D/(1 - m.D);               // conservative: actual VIN with the model duty
     // Q1 stress over the PoE port range: VIN/(1−D) with D = n·VO'/Ve is lowest mid-range and rises at both ends
-    const vqAt = v => v/(1 - Math.min(0.72, n*vo/veOf(v)));
-    m.vqLo = vqAt(PORT_MIN); m.vqHi = vqAt(PORT_MAX);
-    m.vqWorst = Math.max(m.vq, m.vqLo, m.vqHi); m.vqWorstAt = m.vqLo >= m.vqHi ? PORT_MIN : PORT_MAX;
+    // Each point is checked for feasibility first (full-load CCM duty); unreachable ends are reported, not clipped.
+    const vqAt = v => { const d = n*vo/veOf(v); return {vin:v, d, ok: d <= DMAX, vq: v/(1 - Math.min(d, DMAX))}; };
+    m.ends = [vqAt(PORT_MIN), vqAt(PORT_MAX)];
+    const cands = m.ends.filter(e => e.ok).concat(m.infeasible ? [] : [{vin, ok:true, vq:m.vq}]);
+    const worst = cands.reduce((a, e) => (!a || e.vq > a.vq) ? e : a, null);
+    m.vqWorst = worst ? worst.vq : NaN; m.vqWorstAt = worst ? worst.vin : null;
     m.ioutMax = Math.max(0, (P.isw - m.dIm/2)*n - dIccm/2);
     return m;
   },
@@ -236,7 +242,7 @@ window.CFG = {
     {k:'iLo', zh:'輸出電感 LO 電流', en:'Output inductor current', unit:'A', c:'var(--ink)', range:M=>[0, M.Iomax*1.14],
       pts:M => M.mode==='CCM' ? [[0,M.Iomin],[M.D,M.Iomax],[1,M.Iomin]] : [[0,0],[M.D,M.Iomax],[M.D+M.D2,0],[1,0]],
       refs:M => [{v:M.iout, c:'var(--ink)', l:'IOUT', side:'end'}]},
-    {k:'iQ', zh:'主開關 Q1 電流', en:'Q1 current', unit:'A', c:'var(--on)', range:M=>[0, Math.max(M.iqpk, M.isw)*1.14],
+    {k:'iQ', zh:'主開關 Q1 電流', en:'Q1 current', unit:'A', c:'var(--on)', range:M=>[Math.min(0, M.Iomin/M.n - M.dIm/2)*1.3, Math.max(M.iqpk, M.isw)*1.14],
       pts:M => [[0,0],[0,M.Iomin/M.n - M.dIm/2],[M.D,M.iqpk],[M.D,0],[1,0]],
       refs:M => [{v:M.isw, c:'var(--warn)', l:'ILIM', side:'mid'}, {v:M.iin, c:'var(--accent)', l:'IIN', side:'end'}]},
     {k:'im', zh:'激磁電流（經 Q1／Q2）', en:'Magnetizing current', unit:'A', c:'var(--teal)', range:M=>[-M.dIm*0.75, M.dIm*0.75],
@@ -257,7 +263,8 @@ window.CFG = {
     const r = m.dIccm/m.iout*100;
     b.push([r <= 40 && r >= 20 ? 'ok' : 'warn', `輸出電感漣波比 ${r.toFixed(0)}%`]);
     b.push(m.isw >= m.iqpk ? ['ok', `ILIM ≥ Q1 峰值，餘量 ${((m.isw/m.iqpk-1)*100).toFixed(0)}%`] : ['warn', '會觸發限流：ILIM &lt; Q1 峰值']);
-    { const fr = fetRating(m.vqWorst); b.push([fr.ok ? 'ok' : 'warn', `PoE ${PORT_MIN}–${PORT_MAX} V 範圍內 Q1 最高約 ${F(m.vqWorst,0)} V（VIN = ${m.vqWorstAt} V 時）；留 20% 餘量需 ≥ ${F(fr.need,0)} V → 選 ${fr.v ?? '—'} V MOSFET`]); }
+    if (m.vqWorstAt != null) { const fr = fetRating(m.vqWorst); b.push([fr.ok ? 'ok' : 'warn', `可穩壓範圍內 Q1 最高約 ${F(m.vqWorst,0)} V（VIN = ${F(m.vqWorstAt,1)} V 時）；應力不超過額定 80% → 需求額定 ≥ ${F(m.vqWorst,0)}／0.8 = ${F(fr.need,0)} V → 選 ${fr.v ?? '—'} V MOSFET`]); }
+    m.ends.filter(e => !e.ok).forEach(e => b.push(['warn', `VIN = ${e.vin} V 時所需 D = ${(e.d*100).toFixed(1)}% &gt; 72%：此匝比在該端無法穩壓，請降低匝比`]));
     if (m.etaCapped) b.push(['warn', `η 高於二極體壓降允許的上限 ${(m.etaMax*100).toFixed(0)}%，以上限計算；更高效率需同步整流`]);
     const rows = [
       ['損耗等效輸入電壓', 'Loss-equivalent input', `Ve = <b>VIN · η · (VOUT + VF) / VOUT</b>：二極體壓降另計，其餘損耗看成輸入端串聯壓降，佔空比、漣波與平均電流都依 Ve 計算；耐壓仍以實際 VIN 計算`, F(m.ve,2)+' V'],
@@ -272,7 +279,7 @@ window.CFG = {
       ['激磁電流峰-峰值', 'Magnetizing ripple', `ΔIm = <b>Ve · D / (Lm · fSW)</b>，在 ±ΔIm/2 之間擺動`, F(m.dIm,3)+' A'],
       ['Q1 峰值電流', 'Q1 peak', `IQ1,pk = <b>ILO,pk / n + ΔIm / 2</b> = ${F(m.Iomax)} / ${F(m.n,2)} + ${F(m.dIm/2,3)}`, F(m.iqpk)+' A'],
       ['Q1 關斷電壓（目前 VIN）', 'Q1 off-state voltage', `VQ1 = <b>VIN / (1 − D)</b>（理想平台值，未含諧振隆起與寄生振鈴）`, F(m.vq,1)+' V'],
-      ['Q1 應力（PoE 範圍兩端）', 'Q1 stress at both ends of the port range', `VIN = ${PORT_MIN} V：<b>${F(m.vqLo,1)} V</b>；VIN = ${PORT_MAX} V：<b>${F(m.vqHi,1)} V</b>。VIN/(1−D) 在中段最低、兩端升高，兩端都要檢查`, F(m.vqWorst,1)+' V'],
+      ['Q1 應力（PoE 範圍兩端）', 'Q1 stress at both ends of the port range', m.ends.map(e => `VIN = ${e.vin} V：` + (e.ok ? `<b>${F(e.vq,1)} V</b>` : `<b>無法穩壓</b>（所需 D = ${(e.d*100).toFixed(1)}%）`)).join('；') + `。VIN/(1−D) 在中段最低、兩端升高，兩端都要檢查`, isFinite(m.vqWorst) ? F(m.vqWorst,1)+' V' : '—'],
       ['箝位電容電壓', 'Clamp capacitor voltage', `VCC = <b>VIN · D / (1 − D)</b>（高側箝位）`, F(m.vcc,1)+' V'],
       ['D2 反向電壓', 'Freewheel diode reverse', `VD2 = <b>VIN / n</b>`, F(m.vin/m.n,1)+' V'],
       ['限流下最大輸出電流', 'Max IOUT at ILIM', `IOUT(max) ≈ <b>(ILIM − ΔIm/2) · n − ΔIO/2</b>`, F(m.ioutMax,2)+' A']

@@ -40,6 +40,10 @@ function drawWaves(){
 const rows = C.rows;
 $('wave').setAttribute('viewBox', `0 0 620 ${rows.length*ROW + 4}`);
 const g = $('wfStatic'); g.innerHTML = '';
+// outside the model's valid range: say so instead of drawing a normal-looking steady state
+$('wfWarn').hidden = !M.infeasible;
+$('wfWarn').textContent = M.infeasible ? '⚠ 指定條件無法穩壓／超出模型範圍：' + M.infeasible : '';
+g.style.opacity = M.infeasible ? .35 : 1;
 rows.forEach((r, i) => {
 const top = i*ROW, y0 = top + 26, y1 = top + 96;
 const [lo, hi] = r.range(M);
@@ -82,6 +86,7 @@ cur.vals = rows.map((r, i) => el('text', {x:X1, y:i*ROW+14, 'text-anchor':'end',
 // ---------- calc + takeaway ----------
 function drawCalc(){
 const c = C.calc(M, P);
+if (M.infeasible) c.badges.unshift(['warn', '無法穩壓：以下數值僅供示意，見波形區說明']);
 $('badges').innerHTML = c.badges.map(([cls, txt]) => `<span class="badge ${cls}">${txt}</span>`).join('');
 $('formulas').innerHTML = c.rows.map(([zh, en, eq, res]) =>
 `<div class="f-row"><div class="name">${zh}<span class="en">${en}</span></div><div class="eq">${eq}</div><div class="res">${res}</div></div>`).join('');

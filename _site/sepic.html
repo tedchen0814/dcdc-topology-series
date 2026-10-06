@@ -122,6 +122,7 @@
 <span><i style="border-color:var(--on)"></i>Q 導通時電流回路 Q-on loop</span>
 <span><i style="border-color:var(--off)"></i>Q 關斷時電流回路 Q-off loop</span>
 <label><input type="checkbox" id="chkHot" checked>顯示開關電流回路 Show hot loop</label>
+<span class="ve-note">電路圖未畫出損耗元件：電感（或變壓器初級）兩端電壓依「損耗等效輸入」Ve 計算；開關耐壓另以實際 VIN 保守估算。The loss element is not drawn: inductor voltages use the loss-equivalent input Ve; switch stress is a separate, conservative estimate at the actual VIN.</span>
 </div>
 </section>
 <section class="panel" aria-labelledby="h-wave">
@@ -131,6 +132,7 @@
 <input type="range" id="scrub" min="0" max="300" step="0.5" value="0" aria-label="時間游標 Time cursor">
 <span id="scrubVal" class="num">0.00 T</span>
 </div>
+<div class="infeasible" id="wfWarn" role="alert" hidden></div>
 <div class="scroll-x">
 <svg id="wave" viewBox="0 0 620 424" role="img" aria-label="開關管電壓、L1 電流、L2 電流、開關管電流、二極體電流波形">
 <g id="wfStatic"></g>
@@ -264,16 +266,17 @@ model(P){
 const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100;
 // losses as a series drop at the input: both inductors see ve = η·VIN while Q is on
 const ve = vin*eta, iin = iout*vout/ve, sum = iin + iout;
-const Dccm = Math.min(0.95, vout/(ve + vout));
-const dIccm = ve*Dccm/(L*f);                  // ripple of each inductor, p-p
-const m = {vin, vout, iout, eta, ve, iin, sum, Dccm, dIccm, isw:P.isw, half:(iin - iout)/2};
+const DMAX = 0.95, Dreq = vout/(ve + vout), Dccm = Math.min(DMAX, Dreq);
+const dIccm = ve*Dccm/(L*f), dIreq = ve*Dreq/(L*f);   // ripple of each inductor, p-p
+const m = {vin, vout, iout, eta, ve, iin, sum, Dreq, Dccm, dIccm, isw:P.isw, half:(iin - iout)/2};
 let dcm = null;
-if (sum < dIccm) {                            // iL1 + iL2 would dip below zero
+if (sum < dIreq) {                            // iL1 + iL2 would dip below zero
 const D = Math.sqrt(sum*L*f/(ve*(1 + ve/vout)));
 const Smax = 2*ve*D/(L*f), D2 = D*ve/vout;
 if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Smin:0, Smax, dI:Smax/2};
 }
 Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Smin:sum - dIccm, Smax:sum + dIccm, dI:dIccm});
+m.infeasible = m.mode === 'CCM' && Dreq > DMAX ? `所需佔空比 D = VOUT / (Ve + VOUT) = ${(Dreq*100).toFixed(1)}%，超過最大 ${DMAX*100}%：Ve = VIN·η = ${fx(ve,2)} V 太低，指定輸出不可達。波形以 D = ${DMAX*100}% 示意。` : '';
 m.lo = Math.min(0, m.Smin/2 - Math.abs(m.half));
 m.iqPdf = 1.2*sum;
 m.ioutMaxPdf = P.isw/(1.2*(1 + vout/(vin*eta)));
