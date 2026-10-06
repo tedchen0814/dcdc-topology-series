@@ -16,7 +16,8 @@ C.params.forEach(d => {
 const el = $('p_'+d.k);
 if (d.dynMin) el.min = d.dynMin(P);
 if (d.dynMax) el.max = d.dynMax(P);
-if (d.k !== changed) el.value = P[d.k];
+// also write back to the slider being dragged when clamp() changed its value
+if (d.k !== changed || parseFloat(el.value) !== P[d.k]) el.value = P[d.k];
 $('o_'+d.k).textContent = d.fmt(P[d.k]);
 });
 }
@@ -144,7 +145,8 @@ const dt = Math.min(0.05, (ts - last)/1000); last = ts;
 if (playing) {
 t = (t + dt*speed/SEC_PER_T) % PERIODS;
 const s = C.at(M, t % 1), k = 76*speed*(0.35 + 0.65*Math.max(0, Math.min(1, s.flow)));
-if (s.ph==='on') offOn -= k*dt; else if (s.ph==='off') offOff -= k*dt;
+const dir = s.dir === -1 ? -1 : 1;   // negative current (e.g. forced PWM at light load) flows backwards
+if (s.ph==='on') offOn -= dir*k*dt; else if (s.ph==='off') offOff -= dir*k*dt;
 flowsOn.forEach(f => f.style.strokeDashoffset = offOn);
 flowsOff.forEach(f => f.style.strokeDashoffset = offOff);
 render();

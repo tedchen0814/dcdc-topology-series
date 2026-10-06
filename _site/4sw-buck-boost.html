@@ -235,7 +235,7 @@
 <a href="https://www.ti.com/lit/ta/ssztae5/ssztae5.pdf" target="_blank" rel="noopener">TI SSZTAE5〈Four-switch Buck-boost Layout Tip No. 1〉</a>（hot loop、高 dv/dt 節點、敏感走線）；
 <a href="https://www.edn.com/do-not-operate-a-four-switch-buck-boost-converter-in-buck-boost-mode/" target="_blank" rel="noopener">EDN〈Do Not Operate a Four-Switch Buck-Boost Converter in Buck-Boost Mode〉</a>（過渡區電流應力與效率）；
 <a href="https://www.analog.com/en/resources/analog-dialogue/articles/4-switch-buck-boost-controller-layout-for-low-emissions-single-hot-loop-vs-dual-hot-loop.html" target="_blank" rel="noopener">ADI〈4-Switch Buck-Boost Controller Layout for Low Emissions〉</a>（單一與雙 hot loop 佈局）。「補充」項目為一般設計經驗，請以實際晶片規格書為準。
-<br>模型假設：同步整流、強制 PWM 的理想 CCM 模型；Buck 佔空比 D = VOUT/(VIN·η) 不超過 90% 時用 Buck，Boost 佔空比 D = 1 − VIN·η/VOUT 不小於 10% 時用 Boost，其餘為過渡區，以傳統四開關同時切換（D = VOUT/(VIN·η + VOUT)）呈現，這是電流應力最大的情況。實際控制器的過渡區策略各家不同，例如 buck／boost 週期交替或四相位控制。限流以「電感電流限值 I<sub>LIM</sub>」表示，對應 SLVA535 的 switch current limit。
+<br>模型假設：同步整流、強制 PWM 的理想 CCM 模型；效率以輸入端等效串聯壓降建模，電感看到 Ve = VIN·η，模式判斷、電感電壓正負、漣波與平均電流都依 Ve 計算，彼此一致；Buck 佔空比 D = VOUT/Ve 不超過 90% 時用 Buck，Boost 佔空比 D = 1 − Ve/VOUT 不小於 10% 時用 Boost，其餘為過渡區，以傳統四開關同時切換（D = VOUT/(Ve + VOUT)）呈現，這是電流應力最大的情況。實際控制器的過渡區策略各家不同，例如 buck／boost 週期交替或四相位控制。限流以「電感電流限值 I<sub>LIM</sub>」表示，對應 SLVA535 的 switch current limit。
 <br>Idealized synchronous, forced-PWM CCM model. Mode thresholds (buck duty ≤ 90%, boost duty ≥ 10%) are this page's assumption; the transition region is drawn as classic four-switch buck-boost, the worst case for current stress. Real controllers use their own transition schemes.
 </footer>
 </div>
@@ -250,13 +250,18 @@ boost: {name:'Boost 升壓', en:'boost mode', c:'var(--teal)'}
 };
 function core(P, vin){
 const vout = P.vout, iout = P.iout, eta = P.eta/100, L = P.L*1e-6, f = P.f*1e3;
-const iin = iout*vout/(vin*eta);
-const Dbk = vout/(vin*eta), Dbst = 1 - vin*eta/vout;
-let mode, D, avg, dI;
-if (Dbk <= DBUCK_MAX) { mode = 'buck'; D = Dbk; avg = iout; dI = (vin - vout)*D/(L*f); }
-else if (Dbst >= DBOOST_MIN) { mode = 'boost'; D = Math.min(0.95, Dbst); avg = iin; dI = vin*D/(L*f); }
-else { mode = 'bb'; D = vout/(vin*eta + vout); avg = iin + iout; dI = vin*D/(L*f); }
-return {mode, vin, vout, iout, eta, iin, Dbk, Dbst, D, D2:1-D, avg, dI, Imax:avg + dI/2, Imin:avg - dI/2,
+// losses as a series drop at the input: the inductor sees ve = η·VIN in every mode, so the
+// mode choice, the inductor voltage signs, the slopes and the average currents all agree
+const ve = vin*eta;
+let iin = iout*vout/ve;
+const Dbk = vout/ve, Dbst = 1 - ve/vout;
+let mode, D, avg, dI, vlOn, vlOff;
+if (Dbk <= DBUCK_MAX) { mode = 'buck'; D = Dbk; avg = iout; vlOn = ve - vout; vlOff = -vout; }
+else if (Dbst >= DBOOST_MIN) { mode = 'boost'; D = Math.min(0.95, Dbst); avg = iout/(1 - D); vlOn = ve; vlOff = ve - vout; }
+else { mode = 'bb'; D = vout/(ve + vout); avg = iin + iout; vlOn = ve; vlOff = -vout; }
+dI = vlOn*D/(L*f);
+if (mode === 'boost') iin = avg;   // equals IOUT·VOUT/Ve unless D hit its 95% clamp
+return {mode, vin, vout, iout, eta, ve, vlOn, vlOff, iin, Dbk, Dbst, D, D2:1-D, avg, dI, Imax:avg + dI/2, Imin:avg - dI/2,
 ilim:P.ilim, ioutMax:Math.max(0, P.ilim - dI/2)*iout/avg};
 }
 // closed switches per mode and phase
@@ -340,7 +345,7 @@ const v1 = mode==='boost' ? vin : (on ? vin : 0);
 const v2 = mode==='buck' ? vout : (on ? 0 : vout);
 const i1 = mode==='boost' ? iL : (on ? iL : 0);
 const i2 = mode==='buck' ? iL : (on ? 0 : iL);
-const s = {ph, v1, v2, iL, i1, i2, flow: Math.abs(iL)/Math.max(Math.abs(Imax), Math.abs(Imin), 1e-6)};
+const s = {ph, v1, v2, iL, i1, i2, flow: Math.abs(iL)/Math.max(Math.abs(Imax), Math.abs(Imin), 1e-6), dir: iL < 0 ? -1 : 1};
 s.read = {tSw1:'SW1 = '+fx(v1,1)+' V', tSw2:'SW2 = '+fx(v2,1)+' V', tIl:'iL = '+fx(iL)+' A'};
 return s;
 },
@@ -350,7 +355,7 @@ const avgLbl = M => ({buck:'IL(avg) = IOUT', boost:'IL(avg) = IIN', bb:'IL(avg) 
 return [
 {k:'v1', zh:'SW1 電壓（輸入側）', en:'SW1 node voltage', unit:'V', c:'var(--accent)', range:M=>[-1, Math.max(M.vin, 1)*1.14],
 pts:M => M.mode==='boost' ? [[0,M.vin],[1,M.vin]] : [[0,M.vin],[M.D,M.vin],[M.D,0],[1,0],[1,M.vin]],
-refs:M => [{v:M.vin, c:'var(--muted)', l:'VIN', side:'end'}]},
+refs:M => [{v:M.vin, c:'var(--muted)', l:'VIN', side:'end'}, {v:M.ve, c:'var(--muted)', l:'Ve = VIN·η', side:'start'}]},
 {k:'v2', zh:'SW2 電壓（輸出側）', en:'SW2 node voltage', unit:'V', c:'var(--teal)', range:M=>[-1, Math.max(M.vout, 1)*1.14],
 pts:M => M.mode==='buck' ? [[0,M.vout],[1,M.vout]] : [[0,0],[M.D,0],[M.D,M.vout],[1,M.vout],[1,0]],
 refs:M => [{v:M.vout, c:'var(--muted)', l:'VOUT', side:'end'}]},
@@ -375,15 +380,16 @@ b.push(m.ioutMax >= m.iout ? ['ok', `IOUT(max) ${F(m.ioutMax)} A ≥ IOUT`] : ['
 if (m.mode==='bb') b.push(['warn', '四開關同時切換：電流應力 IIN + IOUT，效率最低']);
 if (m.Imin < 0) b.push(['info', '電感電流有負值（強制 PWM 輕載）']);
 const rows = [];
-rows.push(['模式判斷', 'Mode selection', `Buck D = <b>VOUT/(VIN·η)</b> = ${(m.Dbk*100).toFixed(1)}%；Boost D = <b>1 − VIN·η/VOUT</b> = ${(m.Dbst*100).toFixed(1)}%。本頁規則：Buck D ≤ 90% 用 Buck，Boost D ≥ 10% 用 Boost，其餘為過渡區`, md.name]);
-if (m.mode==='buck') rows.push(['佔空比（QH1）', 'Duty cycle', `D = <b>VOUT / (VIN · η)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, (m.D*100).toFixed(1)+' %']);
-else if (m.mode==='boost') rows.push(['佔空比（QL2）', 'Duty cycle', `D = <b>1 − VIN · η / VOUT</b> = 1 − ${F(m.vin,1)} × ${F(m.eta,2)} / ${F(m.vout,1)}`, (m.D*100).toFixed(1)+' %']);
-else rows.push(['佔空比（QH1+QL2）', 'Duty cycle', `D = <b>VOUT / (VIN · η + VOUT)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)} + ${F(m.vout,1)})`, (m.D*100).toFixed(1)+' %']);
+rows.push(['模式判斷', 'Mode selection', `Ve = <b>VIN·η</b> = ${F(m.ve,2)} V；Buck D = <b>VOUT/Ve</b> = ${(m.Dbk*100).toFixed(1)}%；Boost D = <b>1 − Ve/VOUT</b> = ${(m.Dbst*100).toFixed(1)}%。本頁規則：Buck D ≤ 90% 用 Buck，Boost D ≥ 10% 用 Boost，其餘為過渡區`, md.name]);
+if (m.mode==='buck') rows.push(['佔空比（QH1）', 'Duty cycle', `D = <b>VOUT / Ve</b> = ${F(m.vout,1)} / ${F(m.ve,2)}`, (m.D*100).toFixed(1)+' %']);
+else if (m.mode==='boost') rows.push(['佔空比（QL2）', 'Duty cycle', `D = <b>1 − Ve / VOUT</b> = 1 − ${F(m.ve,2)} / ${F(m.vout,1)}`, (m.D*100).toFixed(1)+' %']);
+else rows.push(['佔空比（QH1+QL2）', 'Duty cycle', `D = <b>VOUT / (Ve + VOUT)</b> = ${F(m.vout,1)} / (${F(m.ve,2)} + ${F(m.vout,1)})`, (m.D*100).toFixed(1)+' %']);
 rows.push(['平均輸入電流', 'Average input current', `IIN = <b>IOUT · VOUT / (VIN · η)</b> = ${F(m.iout)} × ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, F(m.iin)+' A']);
 rows.push(['電感平均電流', 'Average inductor current', {buck:'IL(avg) = <b>IOUT</b>（電感在輸出側）', boost:'IL(avg) = <b>IIN</b>（電感在輸入側）', bb:'IL(avg) = <b>IIN + IOUT</b>'}[m.mode], F(m.avg)+' A']);
+rows.push(['電感兩端電壓（損耗等效）', 'Inductor voltage', `導通段 V<sub>L</sub> = <b>${F(m.vlOn,2)} V</b>（電流上升）、關斷段 V<sub>L</sub> = <b>${F(m.vlOff,2)} V</b>（電流下降）；損耗以輸入端串聯壓降表示，所以用 Ve 而不是 VIN 判斷正負`, F(m.vlOn,1)+' / '+F(m.vlOff,1)+' V']);
 rows.push(['電感漣波峰-峰值', 'Ripple ΔI (p-p)', m.mode==='buck'
-? `ΔI = <b>(VIN − VOUT) · D / (fSW · L)</b> = (${F(m.vin,1)} − ${F(m.vout,1)}) × ${F(m.D,3)} / (${fmtF(P.f)} × ${F(P.L,1)} µH)`
-: `ΔI = <b>VIN · D / (fSW · L)</b> = ${F(m.vin,1)} × ${F(m.D,3)} / (${fmtF(P.f)} × ${F(P.L,1)} µH)`, F(m.dI,3)+' A']);
+? `ΔI = <b>(Ve − VOUT) · D / (fSW · L)</b> = (${F(m.ve,2)} − ${F(m.vout,1)}) × ${F(m.D,3)} / (${fmtF(P.f)} × ${F(P.L,1)} µH)`
+: `ΔI = <b>Ve · D / (fSW · L)</b> = ${F(m.ve,2)} × ${F(m.D,3)} / (${fmtF(P.f)} × ${F(P.L,1)} µH)`, F(m.dI,3)+' A']);
 rows.push(['電感／開關峰值電流', 'Peak switch current', `ISW(max) = <b>IL(avg) + ΔI / 2</b> = ${F(m.avg)} + ${F(m.dI/2,3)}`, F(m.Imax)+' A']);
 rows.push(['限流點可支撐的最大輸出', 'Max deliverable IOUT', m.mode==='buck'
 ? `Imax out = <b>ILIM − ΔI / 2</b> = ${F(m.ilim,1)} − ${F(m.dI/2,3)}`

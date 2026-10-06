@@ -141,8 +141,8 @@ SW 點電壓、電感電流、開關管電流、二極體電流波形
   </ul>
 </div>
 <!--#FOOTER-->
-內容依據：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係-2（BUCK）〉V1.0；「補充」項目為一般設計經驗，請以實際晶片規格書為準。波形為理想化模型：佔空比含效率修正 D = VOUT/(VIN·η)（η = 100% 時即原文的 VOUT/VIN），蕭特基壓降 V<sub>F</sub> 取 0.4 V，只在 SW 點電壓中顯示。
-<br>Based on the XLSEMI application note “Switch current vs. input/output current – 2 (BUCK)”. Items tagged 補充 are general practice; always follow the IC datasheet. Idealized model with D = VOUT/(VIN·η) and VF = 0.4 V shown on the SW node only.
+內容依據：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係-2（BUCK）〉V1.0；「補充」項目為一般設計經驗，請以實際晶片規格書為準。波形為理想化模型：效率以「輸入端等效串聯壓降」建模，電感看到 Ve = VIN·η，佔空比、漣波、DCM 判斷都用 Ve 計算，因此波形平均值與標示的 IIN、IOUT 一致；開關耐壓仍以實際 VIN 計算；D = VOUT/Ve（η = 100% 時即原文的 VOUT/VIN），蕭特基壓降 V<sub>F</sub> 取 0.4 V，只在 SW 點電壓中顯示。
+<br>Based on the XLSEMI application note “Switch current vs. input/output current – 2 (BUCK)”. Items tagged 補充 are general practice; always follow the IC datasheet. Idealized model: losses are lumped as a series drop at the input (Ve = η·VIN), so duty cycle, ripple and the average currents stay consistent; D = VOUT/Ve and VF = 0.4 V shown on the SW node only.
 <!--#CONFIG-->
 window.CFG = {
   defaults: {vin:12, vout:5, iout:2, L:10, f:500, eta:90, isw:3},
@@ -164,17 +164,20 @@ window.CFG = {
   ],
   model(P){
     const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100;
-    const Dccm = Math.min(0.98, vout/(vin*eta));
-    const dIccm = (vin - vout)*Dccm/(L*f);
-    const m = {vin, vout, iout, eta, Dccm, dIccm, isw:P.isw, dropout: vout/(vin*eta) > 0.95};
+    // losses modelled as a series drop at the input: the inductor sees ve = η·VIN,
+    // so volt-second balance and the average currents (IIN, IOUT) hold together
+    const ve = Math.max(vin*eta, vout/0.98);
+    const Dccm = vout/ve;
+    const dIccm = (ve - vout)*Dccm/(L*f);
+    const m = {vin, vout, iout, eta, ve, Dccm, dIccm, isw:P.isw, dropout: vout/(vin*eta) > 0.95};
     let dcm = null;
     if (iout < dIccm/2) {
-      const D = Math.sqrt(2*L*f*vout*iout/((vin - vout)*vin));
-      const Ipk = (vin - vout)*D/(L*f), D2 = D*(vin - vout)/vout;
+      const D = Math.sqrt(2*L*f*vout*iout/((ve - vout)*ve));
+      const Ipk = (ve - vout)*D/(L*f), D2 = D*(ve - vout)/vout;
       if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Imin:0, Imax:Ipk, dI:Ipk};
     }
     Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Imin:Math.max(0, iout-dIccm/2), Imax:iout+dIccm/2, dI:dIccm});
-    m.iin = iout*vout/(vin*eta);
+    m.iin = iout*vout/ve;
     m.ioutMax = P.isw - dIccm/2;
     m.ratio = dIccm/iout;
     return m;
@@ -221,17 +224,17 @@ window.CFG = {
     b.push([r<=40 && r>=20 ? 'ok' : 'warn', `漣波比 ripple ratio r = ${r.toFixed(0)}%${r>40?'（偏大 high）':r<20?'（偏小 low）':''}`]);
     b.push(m.isw >= m.Imax ? ['ok', `限流餘量 margin ${((m.isw/m.Imax-1)*100).toFixed(0)}%：ISW ≥ ILmax`] : ['warn', '會觸發限流 hits current limit：ISW &lt; ILmax']);
     if (m.dropout) b.push(['warn', '接近最大佔空比，可能無法穩壓 near dropout']);
-    const rows = [];
+    const rows = [['損耗等效輸入電壓', 'Loss-equivalent input', `Ve = <b>VIN · η</b>：把損耗看成輸入端串聯壓降，電感導通時兩端為 Ve − VOUT = ${F(m.ve - m.vout,2)} V、關斷時為 −VOUT（理想模型，波形與平均電流都依此計算）`, F(m.ve,2)+' V']];
     if (m.mode === 'CCM') {
-      rows.push(['佔空比', 'Duty cycle', `D = <b>VOUT / (VIN · η)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, (m.D*100).toFixed(1)+' %']);
-      rows.push(['電感漣波峰-峰值', 'Ripple ΔI (p-p)', `ΔI = <b>(VIN − VOUT) · D / (L · fSW)</b> = (${F(m.vin,1)} − ${F(m.vout,1)}) × ${F(m.D,3)} / (${F(P.L,1)} µH × ${fmtF(P.f)})`, F(m.dI,3)+' A']);
+      rows.push(['佔空比', 'Duty cycle', `D = <b>VOUT / Ve</b> = ${F(m.vout,1)} / ${F(m.ve,2)}`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['電感漣波峰-峰值', 'Ripple ΔI (p-p)', `ΔI = <b>(Ve − VOUT) · D / (L · fSW)</b> = (${F(m.ve,2)} − ${F(m.vout,1)}) × ${F(m.D,3)} / (${F(P.L,1)} µH × ${fmtF(P.f)})`, F(m.dI,3)+' A']);
       rows.push(['電感／開關峰值電流', 'Peak inductor = switch current', `ILmax = <b>IOUT + ΔI / 2</b> = ${F(m.iout)} + ${F(m.dI/2,3)}`, F(m.Imax)+' A']);
     } else {
-      rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√(2·L·fSW·VOUT·IOUT / ((VIN−VOUT)·VIN))</b>，小於 CCM 的 ${(m.Dccm*100).toFixed(1)}%`, (m.D*100).toFixed(1)+' %']);
-      rows.push(['電感峰值電流', 'Peak inductor current', `ILmax = <b>(VIN − VOUT) · D / (L · fSW)</b>，電感電流每週期回到 0`, F(m.Imax)+' A']);
+      rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√(2·L·fSW·VOUT·IOUT / ((Ve−VOUT)·Ve))</b>，小於 CCM 的 ${(m.Dccm*100).toFixed(1)}%`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['電感峰值電流', 'Peak inductor current', `ILmax = <b>(Ve − VOUT) · D / (L · fSW)</b>，電感電流每週期回到 0`, F(m.Imax)+' A']);
       rows.push(['CCM 邊界', 'CCM boundary', `IOUT ≥ <b>ΔI / 2</b> 才會進入連續導通`, F(m.dIccm/2)+' A']);
     }
-    rows.push(['平均輸入電流', 'Average input current', `IIN = <b>IOUT · VOUT / (VIN · η)</b> = ${F(m.iout)} × ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, F(m.iin)+' A']);
+    rows.push(['平均輸入電流', 'Average input current', `IIN = <b>IOUT · VOUT / (VIN · η)</b> = ${F(m.iout)} × ${F(m.vout,1)} / ${F(m.ve,2)}`, F(m.iin)+' A']);
     rows.push(['限流點可支撐的最大輸出', 'Max IOUT the limit allows', `IOUT(max) ≈ <b>ISW − ΔI / 2</b> = ${F(m.isw,1)} − ${F(m.dIccm/2,3)}`, F(Math.max(0, m.ioutMax))+' A']);
     return {badges:b, rows, items:[
       {s:'I<sub>SW</sub>', zh:'開關限流點', en:'Switch current limit', v:m.isw, c:'var(--warn)'},

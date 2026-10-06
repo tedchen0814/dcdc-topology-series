@@ -170,8 +170,8 @@ DC <span>→</span> DC · UP / DOWN
   </ul>
 </div>
 <!--#FOOTER-->
-內容依據：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係-3（SEPIC）〉V1.0（XL6019 SEPIC 範例電路）；「補充」項目為一般設計經驗，請以實際晶片規格書為準。波形為理想化模型：L1 = L2 且不耦合，佔空比含效率修正 D = VOUT/(VIN·η + VOUT)（η = 100% 時即原文 D = VO/(VIN + VO)），C<sub>DC</sub> 電壓視為定值 VIN，蕭特基壓降 V<sub>F</sub> 取 0.4 V。原文電路的 VOUT 由分壓電阻算得 1.25 V × (1 + 24k/2.7k) ≈ 12.4 V；原文未提供 VIN、負載電流、開關頻率與限流值，預設的 12 V、1.5 A、180 kHz、5 A 為假設值。
-<br>Based on the XLSEMI application note “Switch current vs. input/output current – 3 (SEPIC)”. Items tagged 補充 are general practice; always follow the IC datasheet. Idealized model: L1 = L2, uncoupled, D = VOUT/(VIN·η + VOUT), constant CDC voltage, VF = 0.4 V. VIN, load, switching frequency and current limit in the example preset are assumed.
+內容依據：芯龍半導體 XLSEMI 應用筆記〈開關電流與輸入輸出電流關係-3（SEPIC）〉V1.0（XL6019 SEPIC 範例電路）；「補充」項目為一般設計經驗，請以實際晶片規格書為準。波形為理想化模型：L1 = L2 且不耦合，效率以輸入端等效串聯壓降建模（電感看到 Ve = VIN·η，佔空比、漣波與平均電流都依 Ve 計算，彼此一致），D = VOUT/(Ve + VOUT)（η = 100% 時即原文 D = VO/(VIN + VO)），C<sub>DC</sub> 電壓視為定值 VIN，蕭特基壓降 V<sub>F</sub> 取 0.4 V。原文電路的 VOUT 由分壓電阻算得 1.25 V × (1 + 24k/2.7k) ≈ 12.4 V；原文未提供 VIN、負載電流、開關頻率與限流值，預設的 12 V、1.5 A、180 kHz、5 A 為假設值。
+<br>Based on the XLSEMI application note “Switch current vs. input/output current – 3 (SEPIC)”. Items tagged 補充 are general practice; always follow the IC datasheet. Idealized model: L1 = L2, uncoupled; losses lumped as a series drop at the input (Ve = η·VIN) so duty cycle, ripple and average currents stay consistent; D = VOUT/(Ve + VOUT), constant CDC voltage, VF = 0.4 V. VIN, load, switching frequency and current limit in the example preset are assumed.
 <!--#CONFIG-->
 window.CFG = {
   defaults: {vin:12, vout:12.4, iout:1.5, L:47, f:180, eta:88, isw:5},
@@ -192,14 +192,15 @@ window.CFG = {
   ],
   model(P){
     const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100;
-    const iin = iout*vout/(vin*eta), sum = iin + iout, veff = vout/eta;
-    const Dccm = Math.min(0.95, vout/(vin*eta + vout));
-    const dIccm = vin*Dccm/(L*f);                 // ripple of each inductor, p-p
-    const m = {vin, vout, iout, eta, iin, sum, Dccm, dIccm, isw:P.isw, half:(iin - iout)/2};
+    // losses as a series drop at the input: both inductors see ve = η·VIN while Q is on
+    const ve = vin*eta, iin = iout*vout/ve, sum = iin + iout;
+    const Dccm = Math.min(0.95, vout/(ve + vout));
+    const dIccm = ve*Dccm/(L*f);                  // ripple of each inductor, p-p
+    const m = {vin, vout, iout, eta, ve, iin, sum, Dccm, dIccm, isw:P.isw, half:(iin - iout)/2};
     let dcm = null;
     if (sum < dIccm) {                            // iL1 + iL2 would dip below zero
-      const D = Math.sqrt(sum*L*f/(vin*(1 + vin/veff)));
-      const Smax = 2*vin*D/(L*f), D2 = D*vin/veff;
+      const D = Math.sqrt(sum*L*f/(ve*(1 + ve/vout)));
+      const Smax = 2*ve*D/(L*f), D2 = D*ve/vout;
       if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Smin:0, Smax, dI:Smax/2};
     }
     Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Smin:sum - dIccm, Smax:sum + dIccm, dI:dIccm});
@@ -264,12 +265,12 @@ window.CFG = {
     rows.push(['L1 平均電流 = 輸入電流', 'IL1 = IIN', `IIN = <b>IOUT · VOUT / (VIN · η)</b> = ${F(m.iout)} × ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)})`, F(m.iin)+' A']);
     rows.push(['L2 平均電流 = 輸出電流', 'IL2 = IOUT', `IL2 = <b>IOUT</b>（C<sub>DC</sub> 充放電平衡 charge balance）`, F(m.iout)+' A']);
     if (m.mode === 'CCM') {
-      rows.push(['佔空比', 'Duty cycle', `D = <b>VOUT / (VIN · η + VOUT)</b> = ${F(m.vout,1)} / (${F(m.vin,1)} × ${F(m.eta,2)} + ${F(m.vout,1)})`, (m.D*100).toFixed(1)+' %']);
-      rows.push(['每顆電感漣波峰-峰值', 'Ripple of each inductor (p-p)', `ΔI = <b>VIN · D / (L · fSW)</b> = ${F(m.vin,1)} × ${F(m.D,3)} / (${F(P.L,1)} µH × ${fmtF(P.f)})`, F(m.dI,3)+' A']);
+      rows.push(['佔空比', 'Duty cycle', `D = <b>VOUT / (Ve + VOUT)</b>，Ve = VIN · η = ${F(m.ve,2)} V（損耗等效） → ${F(m.vout,1)} / (${F(m.ve,2)} + ${F(m.vout,1)})`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['每顆電感漣波峰-峰值', 'Ripple of each inductor (p-p)', `ΔI = <b>Ve · D / (L · fSW)</b> = ${F(m.ve,2)} × ${F(m.D,3)} / (${F(P.L,1)} µH × ${fmtF(P.f)})`, F(m.dI,3)+' A']);
       rows.push(['開關峰值電流', 'Peak switch current', `IQ(peak) = <b>IL1(peak) + IL2(peak) = IIN + IOUT + ΔI</b> = ${F(m.iin)} + ${F(m.iout)} + ${F(m.dI,3)}`, F(m.Smax)+' A']);
     } else {
-      rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√((IIN+IOUT)·L·fSW / (VIN·(1 + VIN·η/VOUT)))</b>，小於 CCM 的 ${(m.Dccm*100).toFixed(1)}%`, (m.D*100).toFixed(1)+' %']);
-      rows.push(['開關峰值電流', 'Peak switch current', `IQ(peak) = <b>2 · VIN · D / (L · fSW)</b>，iL1 + iL2 每週期回到 0`, F(m.Smax)+' A']);
+      rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√((IIN+IOUT)·L·fSW / (Ve·(1 + Ve/VOUT)))</b>，Ve = VIN·η，小於 CCM 的 ${(m.Dccm*100).toFixed(1)}%`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['開關峰值電流', 'Peak switch current', `IQ(peak) = <b>2 · Ve · D / (L · fSW)</b>，iL1 + iL2 每週期回到 0`, F(m.Smax)+' A']);
       rows.push(['CCM 邊界', 'CCM boundary', `IIN + IOUT ≥ <b>ΔI</b> 才會連續導通`, F(m.dIccm)+' A']);
     }
     rows.push(['開關峰值（原文估算，漣波取 20%）', 'Peak switch current, note estimate (20% ripple)', `IQ1(peak) ≈ <b>1.2 · (1 + VOUT/(VIN·η)) · IOUT</b>`, F(m.iqPdf)+' A']);

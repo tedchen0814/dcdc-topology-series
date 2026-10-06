@@ -154,7 +154,7 @@ DC <span>→</span> DC · ISOLATED
   </ul>
 </div>
 <!--#FOOTER-->
-內容依據：Flyback 一般工作原理與 PoE PD 常見設計值（AI 整理，未取自單一原文）；「PoE」標籤項目與本站 <a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener">PoE PD 互動教學</a>相關。波形為理想化模型：D = n·(VOUT + VF)／(VIN + n·(VOUT + VF))，I<sub>IN</sub> = VOUT·IOUT／(η·VIN)，漏感突波以 RCD 箝位在約 V<sub>IN</sub> + 1.5·n·(VOUT + VF) 示意，V<sub>F</sub> 取 0.4 V。
+內容依據：Flyback 一般工作原理與 PoE PD 常見設計值（AI 整理，未取自單一原文）；「PoE」標籤項目與本站 <a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener">PoE PD 互動教學</a>相關。波形為理想化模型：二極體壓降另計，其餘損耗以輸入端等效串聯壓降建模（Ve = VIN·η·(VOUT+VF)/VOUT），D = n·(VOUT + VF)／(Ve + n·(VOUT + VF))，I<sub>IN</sub> = VOUT·IOUT／(η·VIN)，波形平均值與標示的 IIN、IOUT 一致；開關耐壓以實際 VIN 計算並依 80% 降額建議等級；漏感突波以 RCD 箝位在約 V<sub>IN</sub> + 1.5·n·(VOUT + VF) 示意，V<sub>F</sub> 取 0.4 V。
 <br>Idealized model based on general flyback theory and typical PoE PD values; items tagged 補充 are general practice. Always follow the IC datasheet.
 <!--#CONFIG-->
 window.CFG = {
@@ -178,19 +178,22 @@ window.CFG = {
   ],
   model(P){
     const L = P.L*1e-6, f = P.f*1e3, vin = P.vin, vout = P.vout, iout = P.iout, eta = P.eta/100, n = P.n;
-    const vr = n*(vout + VF), pin = vout*iout/eta, iin = pin/vin;
-    const Dccm = Math.min(0.9, vr/(vin + vr));
-    const dIccm = vin*Dccm/(L*f), ion = iin/Dccm;
-    const m = {vin, vout, iout, eta, n, vr, iin, Dccm, dIccm, isw:P.isw, vclamp: vin + 1.5*vr};
+    // losses: the diode drop VF is explicit; the rest of the loss is a series drop at the input,
+    // so the primary sees ve and ve·IIN = (VOUT + VF)·IOUT. Averages then match IIN and IOUT exactly.
+    const vo = vout + VF, vr = n*vo;
+    const veRaw = vin*eta*vo/vout, ve = Math.min(vin, veRaw), iin = vo*iout/ve, pin = vin*iin;
+    const Dccm = Math.min(0.9, vr/(ve + vr));
+    const dIccm = ve*Dccm/(L*f), ion = iin/Dccm;
+    const m = {vin, vout, iout, eta, n, vo, vr, ve, etaCapped: veRaw > vin, etaMax: vout/vo, iin, Dccm, dIccm, isw:P.isw, vclamp: vin + 1.5*vr};
     let dcm = null;
     if (ion < dIccm/2) {
-      const D = Math.sqrt(2*L*f*pin)/vin, Ipk = vin*D/(L*f), D2 = D*vin/vr;
+      const D = Math.sqrt(2*L*f*iin/ve), Ipk = ve*D/(L*f), D2 = D*ve/vr;
       if (D + D2 < 1) dcm = {mode:'DCM', D, D2, Imin:0, Imax:Ipk, dI:Ipk};
     }
     Object.assign(m, dcm || {mode:'CCM', D:Dccm, D2:1-Dccm, Imin:ion - dIccm/2, Imax:ion + dIccm/2, dI:dIccm});
     m.isecPk = n*m.Imax;
     m.vd = vout + vin/n;
-    m.ioutMax = Math.max(0, (P.isw - dIccm/2)*Dccm*vin*eta/vout);
+    m.ioutMax = Math.max(0, (P.isw - dIccm/2)*Dccm*ve/vo);
     return m;
   },
   at(M, tau){
@@ -233,24 +236,25 @@ window.CFG = {
     const F = fx, b = [];
     b.push(['info', m.mode==='CCM' ? 'CCM 連續導通 continuous' : 'DCM 不連續導通 discontinuous']);
     b.push(m.isw >= m.Imax ? ['ok', `ILIM ≥ 初級峰值，餘量 ${((m.isw/m.Imax-1)*100).toFixed(0)}%`] : ['warn', '會觸發限流：ILIM &lt; 初級峰值']);
-    b.push(m.vclamp <= 150 ? ['ok', `VDS 含突波約 ${F(m.vclamp,0)} V，150 V MOSFET 可用`] : ['warn', `VDS 含突波約 ${F(m.vclamp,0)} V，需要 200 V 以上 MOSFET`]);
+    { const r = fetRating(m.vclamp); b.push([r.ok ? 'ok' : 'warn', `VDS 含突波約 ${F(m.vclamp,0)} V；留 20% 餘量需 ≥ ${F(r.need,0)} V → 選 ${r.v ?? '—'} V MOSFET${r.ok ? '' : '（高於 PoE 常用的 150–200 V，建議降低匝比或改善箝位）'}`]); }
+    if (m.etaCapped) b.push(['warn', `η 高於二極體壓降允許的上限 ${(m.etaMax*100).toFixed(0)}%（VOUT / (VOUT + VF)），以上限計算；更高效率需同步整流`]);
     if (m.D > 0.6) b.push(['warn', 'D > 60%，匝比偏大或 VIN 太低']);
-    const rows = [];
+    const rows = [['損耗等效輸入電壓', 'Loss-equivalent input', `Ve = <b>VIN · η · (VOUT + VF) / VOUT</b>：二極體壓降另計，其餘損耗看成輸入端串聯壓降；初級導通時激磁電感兩端為 Ve，關斷時為 −V<sub>R</sub>。開關耐壓仍以實際 VIN 計算`, F(m.ve,2)+' V']];
     rows.push(['反射電壓', 'Reflected voltage', `V<sub>R</sub> = <b>n · (VOUT + VF)</b> = ${F(m.n,1)} × (${F(m.vout,1)} + ${VF})`, F(m.vr,1)+' V']);
-    rows.push(['平均輸入電流', 'Input current', `IIN = <b>VOUT · IOUT / (η · VIN)</b>`, F(m.iin,3)+' A']);
+    rows.push(['平均輸入電流', 'Input current', `IIN = <b>VOUT · IOUT / (η · VIN)</b>${m.etaCapped ? '（η 已限制在上限）' : ''}`, F(m.iin,3)+' A']);
     if (m.mode === 'CCM') {
-      rows.push(['佔空比', 'Duty cycle', `D = <b>V<sub>R</sub> / (VIN + V<sub>R</sub>)</b> = ${F(m.vr,1)} / (${F(m.vin,1)} + ${F(m.vr,1)})`, (m.D*100).toFixed(1)+' %']);
-      rows.push(['激磁電流漣波', 'Magnetizing ripple', `ΔI = <b>VIN · D / (Lm · fSW)</b>`, F(m.dI,3)+' A']);
+      rows.push(['佔空比', 'Duty cycle', `D = <b>V<sub>R</sub> / (Ve + V<sub>R</sub>)</b> = ${F(m.vr,1)} / (${F(m.ve,2)} + ${F(m.vr,1)})`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['激磁電流漣波', 'Magnetizing ripple', `ΔI = <b>Ve · D / (Lm · fSW)</b>`, F(m.dI,3)+' A']);
       rows.push(['初級（開關）峰值', 'Primary peak', `I<sub>Q,pk</sub> = <b>IIN / D + ΔI / 2</b> = ${F(m.iin,3)} / ${F(m.D,3)} + ${F(m.dI/2,3)}`, F(m.Imax)+' A']);
     } else {
-      rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√(2 · Lm · fSW · PIN) / VIN</b>`, (m.D*100).toFixed(1)+' %']);
-      rows.push(['初級峰值', 'Primary peak', `I<sub>pk</sub> = <b>VIN · D / (Lm · fSW)</b>，每週期磁芯能量放完`, F(m.Imax)+' A']);
+      rows.push(['佔空比（DCM）', 'Duty cycle in DCM', `D = <b>√(2 · Lm · fSW · IIN / Ve)</b>`, (m.D*100).toFixed(1)+' %']);
+      rows.push(['初級峰值', 'Primary peak', `I<sub>pk</sub> = <b>Ve · D / (Lm · fSW)</b>，每週期磁芯能量放完`, F(m.Imax)+' A']);
       rows.push(['CCM 邊界', 'CCM boundary', `IIN / D ≥ <b>ΔI / 2</b> 才進入 CCM`, F(m.dIccm/2)+' A']);
     }
     rows.push(['次級（二極體）峰值', 'Secondary peak', `I<sub>D,pk</sub> = <b>n · I<sub>Q,pk</sub></b>`, F(m.isecPk)+' A']);
     rows.push(['開關管電壓（不含突波）', 'Switch voltage', `VQ(OFF) = <b>VIN + n · (VOUT + VF)</b>`, F(m.vin+m.vr,1)+' V']);
     rows.push(['二極體反向電壓', 'Diode reverse voltage', `V<sub>D</sub> = <b>VOUT + VIN / n</b>`, F(m.vd,1)+' V']);
-    rows.push(['限流下最大輸出電流', 'Max IOUT at ILIM (CCM)', `IOUT(max) ≈ <b>(ILIM − ΔI/2) · D · VIN · η / VOUT</b>`, F(m.ioutMax,2)+' A']);
+    rows.push(['限流下最大輸出電流', 'Max IOUT at ILIM (CCM)', `IOUT(max) ≈ <b>(ILIM − ΔI/2) · D · Ve / (VOUT + VF)</b>`, F(m.ioutMax,2)+' A']);
     return {badges:b, rows, items:[
       {s:'I<sub>LIM</sub>', zh:'初級限流點', en:'Primary current limit', v:m.isw, c:'var(--warn)'},
       {s:'I<sub>Q,pk</sub>', zh:'開關峰值', en:'Switch peak', v:m.Imax, c:'var(--on)'},
