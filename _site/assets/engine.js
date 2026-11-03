@@ -117,7 +117,6 @@ drawWaves(); drawCalc(); lastPh = null; render();
 }
 // ---------- animation ----------
 let t = 0, playing = true, speed = 1, last = null, offOn = 0, offOff = 0, lastPh = null;
-if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) playing = false;
 const flowsOn = [...document.querySelectorAll('#gOn .flow')], flowsOff = [...document.querySelectorAll('#gOff .flow')];
 function render(){
 const s = C.at(M, t % 1), ph = s.ph;
