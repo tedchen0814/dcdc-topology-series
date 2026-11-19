@@ -169,7 +169,7 @@ DC <span>→</span> DC · ACF
   </ul>
 </div>
 <!--#FOOTER-->
-內容依據：主動箝位 Forward 一般工作原理與 PoE PD 常見設計值（AI 整理，未取自單一原文）；「PoE」標籤項目與本站 <a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener">PoE PD 互動教學</a>相關。波形為理想化模型：二極體壓降 V<sub>F</sub> 取 0.4 V 另計，其餘損耗以輸入端等效串聯壓降建模（Ve = VIN·η·(VOUT+VF)/VOUT），D = n·(VOUT + VF)／Ve，波形平均值與標示的 IIN、IOUT 一致；激磁電流以 ±ΔIm/2 對稱示意；輕載時輸出電感進入 DCM；Q1 應力以實際 VIN／(1−D) 保守估算，並檢查 PoE 37 V 與 57 V 兩端；忽略死區、諧振過渡與寄生振鈴。
+內容依據：主動箝位 Forward 一般工作原理與 PoE PD 常見設計值（AI 整理，未取自單一原文）；「PoE」標籤項目與本站 <a href="https://poe-pd-series.vercel.app/" target="_blank" rel="noopener">PoE 互動教學</a>相關。波形為理想化模型：二極體壓降 V<sub>F</sub> 取 0.4 V 另計，其餘損耗以輸入端等效串聯壓降建模（Ve = VIN·η·(VOUT+VF)/VOUT），D = n·(VOUT + VF)／Ve，波形平均值與標示的 IIN、IOUT 一致；激磁電流以 ±ΔIm/2 對稱示意；輕載時輸出電感進入 DCM；Q1 應力以實際 VIN／(1−D) 保守估算，並檢查 PoE 37 V 與 57 V 兩端；忽略死區、諧振過渡與寄生振鈴。
 <br>Idealized model based on general active-clamp forward theory and typical PoE PD values; losses other than VF are lumped as an input series drop so averages stay consistent, the output inductor enters DCM at light load, and dead times, resonant transitions and ringing are ignored. Always follow the IC datasheet.
 <!--#CONFIG-->
 const PORT_MIN = 37, PORT_MAX = 57;   // PoE PD input range used for the worst-case Q1 stress
